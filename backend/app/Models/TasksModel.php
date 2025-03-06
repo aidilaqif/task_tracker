@@ -12,7 +12,7 @@ class TasksModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = [];
+    protected $allowedFields    = ['user_id', 'title', 'description', 'due_date', 'status', 'priority'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -21,14 +21,21 @@ class TasksModel extends Model
     protected array $castHandlers = [];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
     // Validation
-    protected $validationRules      = [];
+    protected $validationRules      = [
+        'user_id' => 'required|integer',
+        'title' => 'required|max_length[255]',
+        'description' => 'permit_empty', // can be null
+        'due_date' => 'permit_empty|valid_date',
+        'status' => 'required|in_list[pending, in-progress, completed]', // define that it can only be those 3 values
+        'priority' => 'required|in_list[low, medium, high]',
+    ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
