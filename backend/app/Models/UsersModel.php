@@ -29,10 +29,10 @@ class UsersModel extends Model
 
     // Validation
     protected $validationRules      = [
-        'name' => 'required|max_lengths[255]',
-        'email' => 'required|max_lengths[255]',
-        'password' => 'required|max_lengths[255]',
-        'role' => 'required|max_lengths[255]'
+        'name' => 'required|max_length[255]',
+        'email' => 'required|max_length[255]',
+        'password' => 'required|max_length[255]',
+        'role' => 'required|max_length[255]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
