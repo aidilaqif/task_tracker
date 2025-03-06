@@ -4,15 +4,15 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class TasksModel extends Model
+class UsersModel extends Model
 {
-    protected $table            = 'tasks';
+    protected $table            = 'users';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['user_id', 'title', 'description', 'due_date', 'status', 'priority'];
+    protected $allowedFields    = ['name', 'email', 'password', 'role'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -21,20 +21,18 @@ class TasksModel extends Model
     protected array $castHandlers = [];
 
     // Dates
-    protected $useTimestamps = true;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
+    protected $useTimestamps = false;
+    // protected $dateFormat    = 'datetime';
+    // protected $createdField  = 'created_at';
+    // protected $updatedField  = 'updated_at';
+    // protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
-        'user_id' => 'required|integer',
-        'title' => 'required|max_length[255]',
-        'description' => 'permit_empty', // can be null
-        'due_date' => 'permit_empty|valid_date',
-        'status' => 'required|in_list[pending, in-progress, completed]', // define that it can only be those 3 values
-        'priority' => 'required|in_list[low, medium, high]',
+        'name' => 'required|max_length[255]',
+        'email' => 'required|max_length[255]',
+        'password' => 'required|max_length[255]',
+        'role' => 'required|max_length[255]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
