@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/home_page.dart';
 import 'package:frontend/services/api_services.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,7 +14,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String _submittedValue = '';
-  List<dynamic> data = [];
   bool isLoading = false;
 
   @override
@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   void _submit() async {
     setState(() {
       isLoading = true;
+      _submittedValue = '';
     });
 
     try {
@@ -34,11 +35,23 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       setState(() {
-        _submittedValue = response['msg'];
+        _submittedValue = response['msg'] ?? 'Unknown response';
+        isLoading = false;
       });
 
-      if (response['status']) {
+      if (response['status'] == true) {
         print('Login successful: ${response['data']}');
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => MyHomePage(
+                  title: 'Task Tracker',
+                  userData: response['data'],
+                ),
+          ),
+        );
       } else {
         print('Login failed: ${response['msg']}');
       }
@@ -47,21 +60,22 @@ class _LoginPageState extends State<LoginPage> {
         _submittedValue = 'Error: $e';
         isLoading = false;
       });
+      print('Login exception: $e');
     }
   }
 
   void checkConnection() async {
     try {
-      var result = await apiService.checkConnection();
+      await apiService.checkConnection();
       setState(() {
-        data = result;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         isLoading = false;
+        _submittedValue = 'Connection error: $e';
       });
-      // print(e);
+      print('Connection error: $e');
     }
   }
 

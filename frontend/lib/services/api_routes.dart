@@ -4,7 +4,7 @@ class ApiRoutes {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
   static String addUser = '$baseUrl/user/add';
-  static String loginUser = '$baseUrl/user/login';
+  static String loginUser = '$baseUrl/users/login';
   static String addTask = '$baseUrl/tasks/add';
   static String connection = '$baseUrl/check';
   // $routes->get('/check', 'Home::connection');
