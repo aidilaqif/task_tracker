@@ -13,7 +13,7 @@ class _LoginPageState extends State<LoginPage> {
   final ApiService apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String _submittedValue = '';
+  String _connectionStatus = '';
   bool isLoading = false;
 
   @override
@@ -23,9 +23,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submit() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() {
+        _connectionStatus = 'Email and password are required';
+      });
+      return;
+    }
+
     setState(() {
       isLoading = true;
-      _submittedValue = '';
+      _connectionStatus = '';
     });
 
     try {
@@ -35,13 +42,12 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       setState(() {
-        _submittedValue = response['msg'] ?? 'Unknown response';
+        _connectionStatus = response['msg'] ?? 'Unknown response';
         isLoading = false;
       });
 
       if (response['status'] == true) {
-        print('Login successful: ${response['data']}');
-
+        // print('Login successful: ${response['data']}');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -52,30 +58,32 @@ class _LoginPageState extends State<LoginPage> {
                 ),
           ),
         );
-      } else {
-        print('Login failed: ${response['msg']}');
       }
     } catch (e) {
       setState(() {
-        _submittedValue = 'Error: $e';
+        _connectionStatus = 'Error: $e';
         isLoading = false;
       });
-      print('Login exception: $e');
     }
   }
 
   void checkConnection() async {
+    setState(() {
+      isLoading = true;
+      _connectionStatus = 'Checking connection...';
+    });
+
     try {
-      await apiService.checkConnection();
+      final response = await apiService.checkConnection();
       setState(() {
         isLoading = false;
+        _connectionStatus = 'Checking status: $response';
       });
     } catch (e) {
       setState(() {
         isLoading = false;
-        _submittedValue = 'Connection error: $e';
+        _connectionStatus = 'Connection error: ${e.toString()}';
       });
-      print('Connection error: $e');
     }
   }
 
@@ -102,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
               isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(onPressed: _submit, child: Text('submit')),
-              Text('Submitted Value: $_submittedValue'),
+              // Text('Submitted Value: $_submittedValue'),
             ],
           ),
         ),

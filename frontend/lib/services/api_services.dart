@@ -8,9 +8,9 @@ class ApiService {
       final response = await http.get(Uri.parse(ApiRoutes.connection));
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return response.body;
       } else {
-        throw Exception('Failed to connect to server');
+        throw Exception('Failed to connect to server: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Failed to load data: $e');
