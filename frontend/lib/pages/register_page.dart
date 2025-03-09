@@ -23,7 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _register() async {
     // Form validation
-    if (!_nameController.text.isEmpty ||
+    if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
@@ -69,7 +69,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (response['status'] == true) {
         // Show success message and navigate to login page
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration successful! Please login.')),
+          SnackBar(content: Text('Registration successful! Please login.', style: TextStyle(color: Colors.green),)),
         );
 
         // Show delay before navigating to login
