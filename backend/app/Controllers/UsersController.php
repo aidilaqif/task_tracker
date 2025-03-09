@@ -25,7 +25,7 @@ class UsersController extends BaseController
     $data = [
         'name' => $input->name,
         'email' => $input->email,
-        'password' => $input->password,
+        'password' => password_hash($input->password, PASSWORD_DEFAULT),
         'role' => 'user'
     ];
 
@@ -35,9 +35,10 @@ class UsersController extends BaseController
     public function login()
     {
     $input = $this->request->getJSON();
-    $user = $this->usersModel->where('email', $input->email)->where('password', $input->password)->first();
 
-    if ($user){
+    $user = $this->usersModel->where('email', $input->email)->first();
+
+    if ($user && password_verify($input->password, $user['password'])){
         unset($user['password']); // remove sensitive data
         return $this->respondWithJson(true, "Login successful", $user);
     }

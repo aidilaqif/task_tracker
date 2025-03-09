@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/home_page.dart';
+import 'package:frontend/pages/register_page.dart';
 import 'package:frontend/services/api_services.dart';
+import 'package:frontend/widgets/custom_form_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -97,20 +99,54 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 20.0,
             children: <Widget>[
-              FormField(
+              Text(
+                'Task Tracker',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              CustomFormField(
                 isHidden: false,
                 labelText: "Email",
                 controller: _emailController,
+                prefixIcon: Icons.email,
               ),
-              FormField(
+              CustomFormField(
                 isHidden: true,
                 labelText: "Password",
                 controller: _passwordController,
+                prefixIcon: Icons.lock,
               ),
+              if (_connectionStatus.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    _connectionStatus,
+                    style: TextStyle(
+                      color:
+                          _connectionStatus.contains('successful') ||
+                                  _connectionStatus.contains('connected')
+                              ? Colors.green
+                              : Colors.red,
+                    ),
+                  ),
+                ),
               isLoading
                   ? CircularProgressIndicator()
-                  : ElevatedButton(onPressed: _submit, child: Text('submit')),
-              // Text('Submitted Value: $_submittedValue'),
+                  : ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 50),
+                    ),
+                    child: Text('Login', style: TextStyle(fontSize: 16)),
+                  ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RegisterPage()),
+                  );
+                },
+                child: Text('Don\'t have an account? Register'),
+              ),
             ],
           ),
         ),
@@ -119,27 +155,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class FormField extends StatelessWidget {
-  const FormField({
-    super.key,
-    required this.isHidden,
-    required this.labelText,
-    required this.controller,
-  });
+// class FormField extends StatelessWidget {
+//   const FormField({
+//     super.key,
+//     required this.isHidden,
+//     required this.labelText,
+//     required this.controller,
+//   });
 
-  final bool isHidden;
-  final String labelText;
-  final TextEditingController controller;
+//   final bool isHidden;
+//   final String labelText;
+//   final TextEditingController controller;
 
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: isHidden,
-      decoration: InputDecoration(
-        border: OutlineInputBorder(),
-        labelText: labelText,
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return TextField(
+//       controller: controller,
+//       obscureText: isHidden,
+//       decoration: InputDecoration(
+//         border: OutlineInputBorder(),
+//         labelText: labelText,
+//       ),
+//     );
+//   }
+// }

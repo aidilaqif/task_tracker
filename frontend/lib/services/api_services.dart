@@ -8,7 +8,7 @@ class ApiService {
       final response = await http.get(Uri.parse(ApiRoutes.connection));
 
       if (response.statusCode == 200) {
-        return response.body;
+        return ('successful');
       } else {
         throw Exception('Failed to connect to server: ${response.statusCode}');
       }
@@ -32,6 +32,25 @@ class ApiService {
       return {
         'status': false,
         'msg': 'Network error: ${e.toString()}',
+      };
+    }
+  }
+
+  Future<dynamic> registerUser(Map<String, dynamic> data) async {
+    try{
+      final response = await http.post(
+        Uri.parse(ApiRoutes.addUser),
+        headers:  {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      return responseData;
+    } catch (e) {
+      return {
+        'status': false,
+        'msg' : 'Network error: ${e.toString()}',
       };
     }
   }
