@@ -7,7 +7,9 @@ class ApiRoutes {
   static String addUser = '$baseUrl/users/add';
   static String loginUser = '$baseUrl/users/login';
   static String addTask = '$baseUrl/tasks/add';
-  // static String viewTask = '$baseUrl/tasks/view/$taskId';
+  static String viewTask(taskId) => '$baseUrl/tasks/view/$taskId';
+  static String deleteTask(taskId) => '$baseUrl/tasks/delete/$taskId';
+  static String editTask(taskId) => '$baseUrl/tasks/edit/$taskId';
 }
 
 
