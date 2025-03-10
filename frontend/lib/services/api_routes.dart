@@ -10,6 +10,7 @@ class ApiRoutes {
   static String viewTask(taskId) => '$baseUrl/tasks/view/$taskId';
   static String deleteTask(taskId) => '$baseUrl/tasks/delete/$taskId';
   static String editTask(taskId) => '$baseUrl/tasks/edit/$taskId';
+  static String getAllTasks(int userId) => '$baseUrl/tasks/user/$userId';
 }
 
 
