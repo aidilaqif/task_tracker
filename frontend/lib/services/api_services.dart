@@ -60,11 +60,15 @@ class ApiService {
         data['user_id'] = int.tryParse(data['user_id']) ?? 0;
       }
 
+      // print('Sending task data: ${jsonEncode(data)}');
+
       final response = await http.post(
         Uri.parse(ApiRoutes.addTask),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(data),
       );
+      // print('Response status code: ${response.statusCode}');
+      // print('Response body: ${response.body}');
 
       final responseData = jsonEncode(response.body);
 
@@ -79,6 +83,7 @@ class ApiService {
     try {
       // Ensure userId is a valid integer
       if (userId <= 0) {
+        // print('Invalid user ID: $userId');
         return {'status': false, 'msg': 'Invalid user ID', 'data': []};
       }
 
@@ -86,6 +91,18 @@ class ApiService {
         Uri.parse(ApiRoutes.getAllTasks(userId)),
         headers: {'Content-Type': 'application/json'},
       );
+
+      // print('Response status code: ${response.statusCode}');
+      // print('Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        // print('Non-200 status code: ${response.statusCode}');
+        return {
+          'status': false,
+          'msg': 'Server error: ${response.statusCode}',
+          'data': [],
+        };
+      }
 
       final responseData = jsonDecode(response.body);
 
@@ -95,6 +112,7 @@ class ApiService {
       }
       return responseData;
     } catch (e) {
+      // print('Error fetching tasks: $e');
       return {
         'status': false,
         'msg': 'Network error: ${e.toString()}',
