@@ -23,21 +23,24 @@ class Task {
 
   factory Task.fromJson(Map<String, dynamic> json) {
     return Task(
-      id: json['id'],
-      userId: json['user_id'],
-      title: json['title'],
+      id: json['id'] is String ? int.parse(json['id']) : json['id'],
+      userId:
+          json['user_id'] is String
+              ? int.parse(json['user_id'])
+              : json['user_id'],
+      title: json['title'] ?? '',
       description: json['description'] ?? '',
       dueDate: json['due_date'],
-      status: json['status'],
-      priority: json['priority'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      status: json['status'] ?? 'pending',
+      priority: json['priority'] ?? 'medium',
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
     );
   }
 
   // Helper method to get a color for the priority
   String get priorityLabel {
-    switch (priority.toLowerCase()){
+    switch (priority.toLowerCase()) {
       case 'high':
         return 'High';
       case 'medium':
@@ -51,7 +54,7 @@ class Task {
 
   // Helper method to get a formatted status
   String get statusLabel {
-    switch (status.toLowerCase()){
+    switch (status.toLowerCase()) {
       case 'pending':
         return 'Pending';
       case 'in-progress':
