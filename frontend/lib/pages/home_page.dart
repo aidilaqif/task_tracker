@@ -28,7 +28,10 @@ class _MyHomePageState extends State<MyHomePage> {
     if (widget.userData != null) {
       setState(() {
         userName = widget.userData['name'] ?? "User";
-        userId = widget.userData['id'] ?? 0;
+        userId =
+            widget.userData['id'] is String
+                ? int.tryParse(widget.userData['id']) ?? 0
+                : widget.userData['id'] ?? 0;
         isLoading = false;
       });
       fetchTasks();
@@ -126,15 +129,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                   task: tasks[index],
                                   onDelete: () async {
                                     // Delete functionality
-                                    await apiService.deleteTask(tasks[index].id);
+                                    await apiService.deleteTask(
+                                      tasks[index].id,
+                                    );
                                     fetchTasks();
                                   },
                                   onStatusChange: (newStatus) async {
                                     // Implement status update functionality
-                                    await apiService.editTask(
-                                      tasks[index].id,
-                                      {'status': newStatus}
-                                    );
+                                    await apiService.editTask(tasks[index].id, {
+                                      'status': newStatus,
+                                    });
                                     fetchTasks();
                                   },
                                 );
