@@ -46,6 +46,11 @@ class UsersController extends BaseController
     return $this->respondWithJson(false, "Invalid Username or Password");
     }
 
+    public function logout()
+    {
+        return $this->respondWithJson(true, "Logged out successfully");
+    }
+
     private function isEmailExists($email)
     {
     return $this->usersModel->where('email', $email)->first() !== null;
@@ -66,6 +71,7 @@ class UsersController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+
 
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {
