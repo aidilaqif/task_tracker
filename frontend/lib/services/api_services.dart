@@ -102,7 +102,7 @@ class ApiService {
   }
 
   // Delete Task
-  Future<dynamic> deleteTasks(int taskId) async {
+  Future<dynamic> deleteTask(int taskId) async {
     try {
       final response = await http.delete(
         Uri.parse(ApiRoutes.deleteTask(taskId)),
