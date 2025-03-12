@@ -11,6 +11,7 @@ $routes->get('/check', 'Home::connection');
 // users route
 $routes->post('users/add', 'UsersController::addUser');
 $routes->post('users/login', 'UsersController::login');
+$routes->post('users/logout', 'UsersController::logout');
 
 // tasks route
 $routes->post('tasks/add', 'TasksController::addTask');
