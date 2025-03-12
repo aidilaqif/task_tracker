@@ -55,6 +55,11 @@ class ApiService {
   // Add Tasks
   Future<dynamic> addTask(Map<String, dynamic> data) async {
     try {
+      // Ensure user_id is sent as a number
+      if (data.containsKey('user_id') && data['user_id'] is String) {
+        data['user_id'] = int.tryParse(data['user_id']) ?? 0;
+      }
+
       final response = await http.post(
         Uri.parse(ApiRoutes.addTask),
         headers: {'Content-Type': 'application/json'},
@@ -72,6 +77,11 @@ class ApiService {
   // Get All Tasks for a User
   Future<dynamic> getAllTasks(int userId) async {
     try {
+      // Ensure userId is a valid integer
+      if (userId <= 0) {
+        return {'status': false, 'msg': 'Invalid user ID', 'data': []};
+      }
+
       final response = await http.get(
         Uri.parse(ApiRoutes.getAllTasks(userId)),
         headers: {'Content-Type': 'application/json'},
@@ -79,9 +89,17 @@ class ApiService {
 
       final responseData = jsonDecode(response.body);
 
+      // Make sure we return an empty list instead of null for data
+      if (responseData['status'] == true && responseData['data'] == null) {
+        responseData['data'] = [];
+      }
       return responseData;
     } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
+      return {
+        'status': false,
+        'msg': 'Network error: ${e.toString()}',
+        'data': [],
+      };
     }
   }
 
