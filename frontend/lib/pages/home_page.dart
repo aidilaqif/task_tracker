@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/services/api_services.dart';
 import 'package:frontend/models/task_model.dart';
 import 'package:frontend/pages/add_task_page.dart';
@@ -75,6 +76,43 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _logout() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      final response = await apiService.logoutUser();
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false, // Removes all previous routes
+      );
+
+      // Show success message
+      if (response['status'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['msg'] ?? 'Logged out successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false, // Removes all previous routes
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during logout: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,6 +124,11 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: const Icon(Icons.refresh),
             onPressed: fetchTasks,
             tooltip: 'Refersh Taks',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: 'logout',
           ),
         ],
       ),
