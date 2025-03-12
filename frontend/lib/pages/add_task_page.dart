@@ -54,8 +54,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
     });
 
     try {
+      // Ensure user_id is an integer not string
+      int userId = widget.userId;
+
       final response = await apiService.addTask({
-        'user_id': widget.userId,
+        'user_id': userId,
         'title': _titleController.text,
         'description': _descriptionController.text,
         'due_date':
