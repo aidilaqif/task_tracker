@@ -35,6 +35,21 @@ class ApiService {
     }
   }
 
+  // Logout User
+  Future<dynamic> logoutUser() async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiRoutes.logoutUser),
+        headers: {'Content-Type': 'applicaiton/json'},
+      );
+
+      final responseData = jsonDecode(response.body);
+      return responseData;
+    } catch (e) {
+      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
+    }
+  }
+
   // Register User
   Future<dynamic> registerUser(Map<String, dynamic> data) async {
     try {
