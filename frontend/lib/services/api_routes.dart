@@ -6,6 +6,7 @@ class ApiRoutes {
   static String connection = '$baseUrl/check';
   static String addUser = '$baseUrl/users/add';
   static String loginUser = '$baseUrl/users/login';
+  static String logoutUser = '$baseUrl/users/loout';
   static String addTask = '$baseUrl/tasks/add';
   static String viewTask(taskId) => '$baseUrl/tasks/view/$taskId';
   static String deleteTask(taskId) => '$baseUrl/tasks/delete/$taskId';
