@@ -63,8 +63,8 @@ class TasksController extends BaseController
 
         return $this->respondWithJson(
             true,
-            $tasks ? "Tasks retrieved successfully" : "No tasks found for this user",
-            $tasks ?: []
+            $task ? "Tasks retrieved successfully" : "No tasks found for this user",
+            $task ?: []
         );
     }
 
