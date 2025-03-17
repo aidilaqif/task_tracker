@@ -53,6 +53,21 @@ class TasksController extends BaseController
         }
     }
 
+    // function to get all tasks for a specific user
+    public function  getUserTasks ($userId)
+    {
+        // Convert to integer to ensure type safety
+        $userId = (int) $userId;
+
+        $task = $this->tasksModel->where('user_id', $userId)->findAll();
+
+        return $this->respondWithJson(
+            true,
+            $task ? "Tasks retrieved successfully" : "No tasks found for this user",
+            $task ?: []
+        );
+    }
+
     // function to delete tasks
     public function deleteTask($id)
     {

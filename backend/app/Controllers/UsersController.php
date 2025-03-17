@@ -25,7 +25,7 @@ class UsersController extends BaseController
     $data = [
         'name' => $input->name,
         'email' => $input->email,
-        'password' => $input->password,
+        'password' => password_hash($input->password, PASSWORD_DEFAULT),
         'role' => 'user'
     ];
 
@@ -35,14 +35,20 @@ class UsersController extends BaseController
     public function login()
     {
     $input = $this->request->getJSON();
-    $user = $this->usersModel->where('email', $input->email)->where('password', $input->password)->first();
 
-    if ($user){
+    $user = $this->usersModel->where('email', $input->email)->first();
+
+    if ($user && password_verify($input->password, $user['password'])){
         unset($user['password']); // remove sensitive data
         return $this->respondWithJson(true, "Login successful", $user);
     }
 
     return $this->respondWithJson(false, "Invalid Username or Password");
+    }
+
+    public function logout()
+    {
+        return $this->respondWithJson(true, "Logged out successfully");
     }
 
     private function isEmailExists($email)
@@ -65,6 +71,7 @@ class UsersController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+
 
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {
