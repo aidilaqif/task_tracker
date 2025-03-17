@@ -33,7 +33,7 @@ class TasksModel extends Model
         'title' => 'required|max_length[255]',
         'description' => 'permit_empty', // can be null
         'due_date' => 'permit_empty|valid_date',
-        'status' => 'required|in_list[pending, in-progress, completed]', // define that it can only be those 3 values
+        'status' => 'required|in_list[pending, in-progress, completed, request-extension]', // define that it can only be those 4 values
         'priority' => 'required|in_list[low, medium, high]',
     ];
     protected $validationMessages   = [];

@@ -94,7 +94,17 @@ class TasksController extends BaseController
             $data['due_date'] = $input->due_date;
         }
         if (isset($input->status)){
-            $data['status'] = $input->status;
+            $allowedStatuses = ['pending', 'in-progress', 'completed', 'request-extension'];
+            if (in_array($input->status, $allowedStatuses)){
+                $data['status'] = $input->status;
+            } else {
+                return $this->respondWithJson(
+                    false,
+                    "Invalid status value. Allowed values are: pending, in-progress, completed, request-extension",
+                    null,
+                    400
+                );
+            }
         }
         if (isset($input->priority)){
             $data['priority'] = $input->priority;
@@ -102,7 +112,8 @@ class TasksController extends BaseController
 
         try{
             if ($this->tasksModel->update($id, $data)){
-                return $this->respondWithJson(true, "Task updated successfully");
+                $updatedTask = $this->tasksModel->find($id);
+                return $this->respondWithJson(true, "Task updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
                 return $this->respondWithJson(false, "Failed to update tasks", $errors, 400);
@@ -110,6 +121,38 @@ class TasksController extends BaseController
         }catch (\Exception $e){
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
 
+        }
+    }
+
+    // Updating task status specifically
+    public function updateTaskStatus($id)
+    {
+        $input = $this->request->getJSON();
+
+        if(!isset($input->status)){
+            return $this->respondWithJson(false, "Status field is required", null, 400);
+        }
+
+        // Validate status against allowed values
+        $allowedStatuses = ['pending', 'in-progress', 'completed', 'request-extension'];
+        if(!in_array($input->status, $allowedStatuses)){
+            return $this->respondWithJson(
+                false,
+                "Invalid status value. Allowed values are: pending, in-progress, completed, request-extension",
+                null,
+                400
+            );
+        }
+        try {
+            if ($this->tasksModel->update($id, ['status' => $input->status])){
+                $updatedTask = $this->tasksModel->find($id);
+                return $this->respondWithJson(true, "Task status updated successfully", $updatedTask);
+            } else {
+                $errors = $this->tasksModel->errors();
+                return $this->respondWithJson(false, "Failed to update task status", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
 
