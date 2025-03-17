@@ -31,7 +31,7 @@ class UsersController extends BaseController
 
     return $this->insertUser($data);
     }
-
+    // User login function
     public function login()
     {
     $input = $this->request->getJSON();
@@ -40,12 +40,52 @@ class UsersController extends BaseController
 
     if ($user && password_verify($input->password, $user['password'])){
         unset($user['password']); // remove sensitive data
-        return $this->respondWithJson(true, "Login successful", $user);
+
+        // Response object with explicit role information
+        $responseData = [
+            'user' => $user,
+            'role' => $user['role'],
+            'permissions' => $this->getRolePermissions($user['role'])
+        ];
+
+        return $this->respondWithJson(true, "Login successful", $responseData);
     }
 
     return $this->respondWithJson(false, "Invalid Username or Password");
     }
+    // Get permission based on user role (determine what frontend feature to show)
+    private function getRolePermissions($role)
+    {
+        $permissions = [];
 
+        switch($role){
+            case 'admin':
+                $permissions = [
+                    'canCreateUser' => true,
+                    'canDeleteUser' => true,
+                    'canAssignTasks' => true,
+                    'canDeleteTasks' => true,
+                    'canViewAllTasks' => true,
+                    'canSetPriorities' => true,
+                    'canGenerateReports' => true
+                ];
+                break;
+            case 'user':
+            default:
+            $permissions = [
+                'canCreateUser' => false,
+                'canDeleteUser' => false,
+                'canAssignTasks' => false,
+                'canDeleteTasks' => false,
+                'canViewAllTasks' => false,
+                'canSetPriorities' => false,
+                'canGenerateReports' => false
+            ];
+            break;
+        }
+        return $permissions;
+    }
+    // User Logout function
     public function logout()
     {
         return $this->respondWithJson(true, "Logged out successfully");
