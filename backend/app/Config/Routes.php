@@ -28,7 +28,7 @@ $routes->get('teams/(:num)','TeamController::getTeam/$1');
 $routes->get('teams/(:num)/members', 'TeamController::getTeamMembers/$1');
 $routes->post('teams', 'TeamController::createTeam');
 $routes->post('teams/members','TeamController::addUserToTeam');
-$routes->delete('teams/members/(:num)', 'TeamController::removeUsersFromTeam/$1');
+$routes->delete('teams/members/(:num)', 'TeamController::removeUserFromTeam/$1');
 
 // users-team related route
 $routes->get('users/team/(:num)', 'UsersController::getUsersByTeam/$1');

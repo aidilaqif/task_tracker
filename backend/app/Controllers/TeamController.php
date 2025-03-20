@@ -12,9 +12,8 @@ class TeamController extends BaseController
     protected $teamModel;
     protected $usersModel;
 
-    public function _construct()
+    public function __construct()
     {
-        parent::_construct();
         $this->teamModel = new TeamModel();
         $this->usersModel = new UsersModel();
     }
@@ -61,7 +60,7 @@ class TeamController extends BaseController
         }
 
         // Get team members
-        $members = $this->teamModel->getTeamMembers($id);
+        $members = $this->teamModel->getTeamMembers($teamId);
 
         // Prepare response with both team info and members
         $response = [
