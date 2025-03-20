@@ -97,13 +97,31 @@ class TasksController extends BaseController
         // Convert to integer to ensure type safety
         $userId = (int) $userId;
 
-        $task = $this->tasksModel->where('user_id', $userId)->findAll();
+       // Initialize the query builder with the user_id filter
+       $builder = $this->tasksModel->where('user_id', $userId);
 
-        return $this->respondWithJson(
-            true,
-            $task ? "Tasks retrieved successfully" : "No tasks found for this user",
-            $task ?: []
-        );
+       // Get query parameters for filtering
+       $priority = $this->request->getGet('priority');
+       $status = $this->request->getGet('status');
+
+       // Apply priority filter if provided
+       if ($priority) {
+        $builder->where('priority', $priority);
+       }
+
+       // Apply status filter if provided
+       if ($status) {
+        $builder->where('status', $status);
+       }
+
+       // Execute the query
+       $tasks = $builder->findAll();
+
+       return $this->respondWithJson(
+        true,
+        $tasks ? "Tasks retrieved successfully" : "No tasks found for this user",
+        $tasks ?: []
+       );
     }
 
     // function to delete tasks
