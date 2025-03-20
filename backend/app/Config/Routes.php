@@ -21,6 +21,8 @@ $routes->delete('tasks/delete/(:num)', 'TasksController::deleteTask/$1');
 $routes->put('tasks/edit/(:num)', 'TasksController::editTask/$1');
 $routes->get('tasks/user/(:num)', 'TasksController::getUserTasks/$1');
 $routes->put('tasks/status/(:num)', 'TasksController::updateTaskStatus/$1');
+$routes->get('tasks/priorities', 'TasksController::getPriorityLevels');
+$routes->put('tasks/priority/(:num)', 'TasksController::updateTaskPriority/$1');
 
 // team route
 $routes->get('teams','TeamController::getAllTeams');

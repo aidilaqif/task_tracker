@@ -212,6 +212,63 @@ class TasksController extends BaseController
         }
     }
 
+    // Get available priority levels
+    public function getPriorityLevels()
+    {
+        // Define available priority levels based on validation rules
+        $priorityLevels = [
+            'low' => [
+                'value' => 'low',
+                'label' => 'low priority',
+                'description' => 'Tasks that are less urgent and can be completed when time allows'
+            ],
+            'medium' => [
+                'value' => 'medium',
+                'label' => 'Medium Priority',
+                'description' => 'Tasks that should be completed in a timely manner but aren\'t urgent'
+            ],
+            'high' => [
+                'value' => 'high',
+                'label' => 'High Priority',
+                'description' => 'Urgent tasks that require immediate attention'
+            ]
+        ];
+
+        return $this->respondWithJson(true, "Priority levels retrieved successfully", $priorityLevels);
+    }
+
+    // Update task priority specifically
+    public function updateTaskPriority($id)
+    {
+        $input = $this->request->getJSON();
+
+        if(!isset($input->priority)){
+            return $this->respondWithJson(false, "Priority field is required", null, 400);
+        }
+
+        // Validate priority against allowed values
+        $allowedPriorities = ['low', 'medium', 'high'];
+        if(!in_array($input->priority, $allowedPriorities)) {
+            return $this->respondWithJson(
+                false,
+                "Invalid priority value. Allowed values are: low, medium, high",
+                null,
+                400
+            );
+        }
+        try {
+            if ($this->tasksModel->update($id, ['priority' => $input->priority])){
+                $updatedTask = $this->tasksModel->find($id);
+                return $this->respondWithJson(true, "Task priority updated successfully", $updatedTask);
+            } else {
+                $errors = $this->tasksModel->errors();
+                return $this->respondWithJson(false, "Failed to update task priority", $errors, 400);
+            }
+        } catch (\Exception $e){
+            return $this->respondWithJson(false, "Internal Server Error",$e->getMessage(), 500);
+        }
+    }
+
     private function respondWithJson($status, $msg, $data = null, $statusCode=200)
     {
     $response = [
