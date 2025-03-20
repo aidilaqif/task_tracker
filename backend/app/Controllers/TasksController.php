@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\TasksModel;
+use App\Models\UsersModel;
 // use CodeIgniter\HTTP\ResponseInterface;
 
 class TasksController extends BaseController
@@ -35,6 +36,43 @@ class TasksController extends BaseController
             } else {
                 $errors = $this->tasksModel->errors();
                 return $this->respondWithJson(false, "Failed to add task", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+    // function to assign task to team member
+    public function assignTask()
+    {
+        $input = $this->request->getJSON();
+
+        // Validate required fields
+        if (!isset($input->task_id) || !isset($input->user_id)){
+            return $this->respondWithJson(false, "Task ID and User ID are required", null, 400);
+        }
+
+        // Verify that the task exists
+        $task = $this->tasksModel->find($input->task_id);
+        if(!$task) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
+        }
+
+        // Verify that the user exists
+        $usersModel = new \App\Models\UsersModel();
+        $user = $usersModel->find($input->user_id);
+        if (!$user) {
+            return $this->respondWithJson(false, "User not found", null, 404);
+        }
+
+        // Update task with new user_id
+        try {
+            if ($this->tasksModel->update($input->task_id, ['user_id' => $input->user_id])){
+                // Get updated task
+                $updatedTask = $this->tasksModel->find($input->task_id);
+                return $this->respondWithJson(true, "Task assigned successfully", $updatedTask);
+            } else {
+                $errors = $this->tasksModel->errors();
+                return $this->respondWithJson(false, "Failed to assign task", $errors, 400);
             }
         } catch (\Exception $e) {
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
