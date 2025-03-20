@@ -12,7 +12,7 @@ class UsersModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'email', 'password', 'role'];
+    protected $allowedFields    = ['name', 'email', 'password', 'role', 'team_id'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -32,7 +32,8 @@ class UsersModel extends Model
         'name' => 'required|max_length[255]',
         'email' => 'required|max_length[255]',
         'password' => 'required|max_length[255]',
-        'role' => 'required|max_length[255]'
+        'role' => 'required|max_length[255]',
+        'team_id' => 'permit_empty|integer'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
@@ -48,4 +49,25 @@ class UsersModel extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    /**
+     * Get users by team ID
+     * 
+     * @param int $teamId
+     * @return array
+     */
+    public function getUsersByTeam($teamId)
+    {
+        return $this->where('team_id', $teamId)->findAll();
+    }
+
+    /**
+     * Get users not in any team
+     * 
+     * @return array
+     */
+    public function getUsersWithoutTeam()
+    {
+        return $this->where('team_id is NULL')->findAll();
+    }
 }
