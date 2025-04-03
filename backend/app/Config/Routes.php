@@ -24,6 +24,10 @@ $routes->put('tasks/status/(:num)', 'TasksController::updateTaskStatus/$1');
 $routes->get('tasks/priorities', 'TasksController::getPriorityLevels');
 $routes->put('tasks/priority/(:num)', 'TasksController::updateTaskPriority/$1');
 
+// progress tracking routes
+$routes->put('tasks/progress/(:num)', 'TasksController::updateTaskProgress/$1');
+$routes->get('tasks/stats', 'TasksController::getTaskCompletionStats');
+
 // team route
 $routes->get('teams','TeamController::getAllTeams');
 $routes->get('teams/with-count','TeamController::getTeamsWithMemberCount');

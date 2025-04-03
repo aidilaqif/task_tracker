@@ -269,6 +269,164 @@ class TasksController extends BaseController
         }
     }
 
+    // Update task progress percentage
+    public function updateTaskProgress($id)
+    {
+        $input = $this->request->getJSON();
+
+        if (!isset($input->progress)) {
+            return $this->respondWithJson(false, "Progress field is required", null, 400);
+        }
+
+        // Validate progress value
+        $progress = (int) $input->progress;
+        if ($progress < 0 || $progress > 100) {
+            return $this->respondWithJson(
+                false,
+                "Progress must be between 0 and 100",
+                null,
+                400
+            );
+        }
+
+        try {
+            // Get current task to check if status needs updating
+            $task = $this->tasksModel->find($id);
+            if(!$task) {
+                return $this->respondWithJson(false, "Task not found", null, 404);
+            }
+
+            $data = ['progress' => $progress];
+
+            // Auto-update status based on progress if needed
+            if($progress == 100 && $task['status'] != 'completed') {
+                $data['status'] = 'completed';
+            } elseif ($progress > 0 && $progress < 100 && $task['status'] == 'pending') {
+                $data['status'] = 'in-progress';
+            }
+
+            if ($this->tasksModel->update($id, $data)) {
+                $updatedTask = $this->tasksModel->find($id);
+                return $this->respondWithJson(true, "Task progress updated successfully", $updatedTask);
+            } else {
+                $errors = $this->tasksModel->errors();
+                return $this->respondWithJson(false, "Failed to update task progress", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+
+    // Get task completion statistics
+    public function getTaskCompletionStats()
+    {
+        $db = \Config\Database::connect();
+
+        // Get statistics parameters
+        $userId = $this->request->getGet('user_id');
+        $teamId = $this->request->getGet('team_id');
+        $period = $this->request->getGet('period'); // 'week', 'month', 'all'
+
+        try {
+            $stats = [];
+
+            // 1. Overall task completion rate
+            $builder = $db->table('tasks');
+            $builder->selectCount('id', 'total');
+            $builder->selectCount('id', 'completed')->where('status', 'completed');
+            $builder->selectAvg('progress', 'average_progress');
+
+            // Apply filters if provided
+            if ($userId) {
+                $builder->where('user_id', $userId);
+            }
+
+            if ($teamId) {
+                $subquery = $db->table('users')
+                    ->select('id')
+                    ->where('team_id', $teamId);
+                $builder->whereIn('user_id', $subquery);
+            }
+
+            if ($period == 'week') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-7 days')));
+            } elseif ($period == 'month') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+            }
+
+            $result = $builder->get()->getRowArray();
+
+            // Calculate the completion rate
+            $completionRate = 0;
+            if ($result['total'] > 0) {
+                $completionRate = round(($result['completed'] / $result['total']) * 100, 2);
+            }
+
+            $stats['overall'] = [
+                'total_tasks' => (int)$result['total'],
+                'completed_tasks' => (int)$result['completed'],
+                'completion_rate' => $completionRate,
+                'average_progress' => round((float)$result['average_progress'], 2),
+            ];
+
+            // 2. Progress breakdown by status
+            $builder = $db->table('tasks');
+            $builder->select('status, COUNT(*) as count, AVG(progress) as avg_progress');
+            $builder->groupBy('status');
+
+            // Apply the same filters
+            if ($userId) {
+                $builder->where('user_id', $userId);
+            }
+
+            if ($teamId) {
+                $subquery = $db->table('users')
+                    ->select('id')
+                    ->where('team_id', $teamId);
+                $builder->whereIn('user_id', $subquery);
+            }
+
+            if ($period == 'week') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-7 days')));
+            } elseif ($period == 'month') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+            }
+
+            $statusBreakdown = $builder->get()->getResultArray();
+            $stats['status_breakdown'] = $statusBreakdown;
+
+            // 3. Progress breakdown by priority
+            $builder = $db->table('tasks');
+            $builder->select('priority, COUNT(*) as count, AVG(progress) as avg_progress');
+            $builder->groupBy('priority');
+
+            // Apply the same filters
+            if ($userId) {
+                $builder->where('user_id', $userId);
+            }
+
+            if ($teamId) {
+                $subquery = $db->table('users')
+                    ->select('id')
+                    ->where('team_id', $teamId);
+                $builder->whereIn('user_id', $subquery);
+            }
+
+            if ($period == 'week') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-7 days')));
+            } elseif ($period == 'month') {
+                $builder->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+            }
+
+            $priorityBreakdown = $builder->get()->getResultArray();
+            $stats['priority_breakdown'] = $priorityBreakdown;
+
+            // Return the statistics
+            return $this->respondWithJson(true, "Task completion statistic retrieved successfully", $stats);
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
     private function respondWithJson($status, $msg, $data = null, $statusCode=200)
     {
     $response = [
