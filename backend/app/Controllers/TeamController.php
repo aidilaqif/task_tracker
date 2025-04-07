@@ -156,6 +156,96 @@ class TeamController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+
+    // Get team workload and performance metrics
+    public function getTeamPerformanceMetrics($teamId)
+    {
+        // Check if team exists
+        $team = $this->teamModel->find($teamId);
+        if (!$team) {
+            return $this->respondWithJson(false, "Team not found", null, 404);
+        }
+
+        try {
+            $metrics = [];
+            $db = db_connect();
+            
+            // 1. Get team members with their task counts and workload
+            $builder = $db->table('users');
+            $builder->select('users.id, users.name, COUNT(tasks.id) as total_tasks,
+                            SUM(CASE WHEN tasks.status = "completed" THEN 1 ELSE 0 END) as completed_tasks,
+                            AVG(tasks.progress) as avg_progress');
+            $builder->join('tasks', 'users.id = tasks.user_id', 'left');
+            $builder->where('users.team_id', $teamId);
+            $builder->groupBy('users.id, users.name');
+
+            $memberWorkload = $builder->get()->getResultArray();
+
+            // Calculate completion rates and add to the result
+            foreach ($memberWorkload as &$member) {
+                $member['completion_rate'] = $member['total_tasks'] > 0 ?
+                    round(($member['completed_tasks'] / $member['total_tasks']) * 100, 2) : 0;
+                $member['avg_progress'] = round($member['avg_progress'] ?? 0, 2);
+            }
+
+            $metrics['member_workload'] = $memberWorkload;
+
+            // 2. Get task priority distribution across the team
+            $builder = $db->table('tasks');
+            $builder->select('tasks.priority, COUNT(*) as count');
+            $builder->join('users','users.id = tasks.user_id');
+            $builder->where('users.team_id', $teamId);
+            $builder->groupBy('tasks.priority');
+
+            $priorityDistribution = $builder->get()->getResultArray();
+            $metrics['priority_distribution'] = $priorityDistribution;
+
+            // 3. Get task status distribution across the team
+            $builder = $db->table('tasks');
+            $builder->select('tasks.status, COUNT(*) as count');
+            $builder->join('users', 'users.id = tasks.user_id');
+            $builder->where('users.team_id', $teamId);
+            $builder->groupBy('tasks.status');
+
+            $statusDistribution = $builder->get()->getResultArray();
+            $metrics['status_distribution'] = $statusDistribution;
+
+            // 4. Get overdue tasks count
+            $builder = $db->table('tasks');
+            $builder->select('COUNT(*) as overdue_count');
+            $builder->join('users', 'users.id = tasks.user_id');
+            $builder->where('users.team_id', $teamId);
+            $builder->where('tasks.due_date <', date('Y-m-d'));
+            $builder->where('tasks.status !=', 'completed');
+
+            $overdueResult = $builder->get()->getRowArray();
+            $metrics['overdue_tasks'] = (int)$overdueResult['overdue_count'];
+
+            // 5. Calculate team's overall completion rate
+            $builder = $db->table('tasks');
+            $builder->select('COUNT(*) as total, SUM(CASE WHEN tasks.status = "completed" THEN 1 ELSE 0 END) as completed');
+            $builder->join('users', 'users.id = tasks.user_id');
+            $builder->where('users.team_id', $teamId);
+
+            $overall = $builder->get()->getRowArray();
+            $metrics['team_completion_rate'] = $overall['total'] > 0 ?
+                round(($overall['completed'] / $overall['total']) * 100, 2) : 0;
+
+            // 6. Get average time to complete tasks (in days)
+            $builder = $db->table('tasks');
+            $builder->select('AVG(DATEDIFF(tasks.updated_at, tasks.created_at)) as avg_completion_time');
+            $builder->join('users', 'users.id = tasks.user_id');
+            $builder->where('users.team_id', $teamId);
+            $builder->where('tasks.status', 'completed');
+
+            $timeResult = $builder->get()->getRowArray();
+            $metrics['avg_completion_time'] = round($timeResult['avg_completion_time'] ?? 0, 1);
+
+            return $this->respondWithJson(true, "Team performance metrics retrieved successfully", $metrics);
+        } catch (\Exception $e){
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
     // Standard JSON response method
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {
