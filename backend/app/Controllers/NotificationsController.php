@@ -100,6 +100,29 @@ class NotificationsController extends BaseController
             $notifications ?: []
         );
     }
+    // Mark a notification as read
+    public function markAsRead($notificationId)
+    {
+        // Verify that the notification exists
+        $notification = $this->notificationsModel->find($notificationId);
+        if(!$notification) {
+            return $this->respondWithJson(false, "Notification not found", null, 404);
+        }
+
+        try {
+            // Update the notification to mark it as read
+            if ($this->notificationsModel->update($notificationId, ['is_read' => 1])) {
+                // Get the updated notification
+                $updatedNotification = $this->notificationsModel->find($notificationId);
+                return $this->respondWithJson(true, "Notification marked as read", $updatedNotification);
+            } else {
+                $errors = $this->notificationsModel->errors();
+                return $this->respondWithJson(false, "Failed to mark notification as read", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
     // Standard JSON response method
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {
