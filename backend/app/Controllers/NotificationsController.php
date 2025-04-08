@@ -67,6 +67,39 @@ class NotificationsController extends BaseController
         }
     }
 
+    // Get notifications for a specific user
+    public function getUserNotifications($userId)
+    {
+        // Verify that the user exists
+        $user = $this->usersModel->find($userId);
+        if (!$user) {
+            return $this->respondWithJson(false, "User not found", null, 404);
+        }
+
+        // Get query parameters for filtering
+        $isRead = $this->request->getGet('is_read');
+
+        // Initialize query builder
+        $builder = $this->notificationsModel->where('user_id', $userId);
+
+        // Apply is_read filter if provided
+        if ($isRead !== null) {
+            $isReadBool = filter_var($isRead, FILTER_VALIDATE_BOOLEAN);
+            $builder->where('is_read', $isReadBool ? 1 : 0);
+        }
+
+        // Order by most recent first
+        $builder->orderBy('created_at', 'DESC');
+
+        // Execute the query
+        $notifications = $builder->findAll();
+
+        return $this->respondWithJson(
+            true,
+            $notifications ? "Notifications retrieved successfully" : "No notifications found for this user",
+            $notifications ?: []
+        );
+    }
     // Standard JSON response method
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {

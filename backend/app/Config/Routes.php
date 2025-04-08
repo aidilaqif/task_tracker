@@ -45,3 +45,4 @@ $routes->delete('users/team/(:num)', 'UsersController::removeUserFromTeam/$1');
 
 // notification routes
 $routes->post('notifications/task', 'NotificationsController::sendTaskNotification');
+$routes->get('notifications/user/(:num)', 'NotificationsController::getUserNotifications/$1');
