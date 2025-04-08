@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\TasksModel;
 use App\Models\UsersModel;
+use App\Models\NotificationsModel;
 // use CodeIgniter\HTTP\ResponseInterface;
 
 class TasksController extends BaseController
@@ -14,6 +15,7 @@ class TasksController extends BaseController
     public function __construct()
     {
         $this->tasksModel = new TasksModel();
+        $this->notificationsModel = new NotificationsModel();
     }
 
     // function to create new tasks
@@ -69,6 +71,28 @@ class TasksController extends BaseController
             if ($this->tasksModel->update($input->task_id, ['user_id' => $input->user_id])){
                 // Get updated task
                 $updatedTask = $this->tasksModel->find($input->task_id);
+                // Send notication to the assigned user
+                // $this->sendNewTaskNotification($user, $updatedTask);
+                try {
+                    $notificationsModel = new \App\Models\NotificationsModel();
+                    $notificationData = [
+                        'user_id' => $user['id'],
+                        'task_id' => $task['id'],
+                        'title' => 'New Task Assigned',
+                        'message' => "You have been assigned a new task: {$task['title']}. Please check your tasks list for details.",
+                        'is_read' => false
+                    ];
+
+                    $result = $notificationsModel->insert($notificationData);
+                    if (!$result) {
+                        log_message('error', "Notification not created. Validation errors: ".json_encode($notificationsModel->errors()));
+                    } else {
+                        log_message('info', "Notification created for user {$user['id']} for task {$task['id']}");
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', "Failed to create notification: ". $e->getMessage());
+                }
+
                 return $this->respondWithJson(true, "Task assigned successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
@@ -427,6 +451,27 @@ class TasksController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+    // Send new notification to user
+    // private function sendNewTaskNotification($user, $task)
+    // {
+    //     // Prepare notification data
+    //     $notificationData = [
+    //         'user_id' => $user['id'],
+    //         'task_id' => $task['id'],
+    //         'title' => 'New Task Assigned',
+    //         'message' => "You have been assigned a new task: {$task['title']}. Please check your tasks list for details.",
+    //         'is_read' => false
+    //     ];
+
+    //     // Insert notification
+    //     try {
+    //         $this->notificationsModel->insert($notificationData);
+    //         log_message('info', "Notification sent to user {$user['id']} for task {$task['id']}");
+    //     } catch (\Exception $e) {
+    //         // Log the error
+    //         log_message('error', "Failed to send notification: ".$e->getMessage());
+    //     }
+    // }
     private function respondWithJson($status, $msg, $data = null, $statusCode=200)
     {
     $response = [
