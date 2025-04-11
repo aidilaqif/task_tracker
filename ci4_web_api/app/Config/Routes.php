@@ -5,8 +5,7 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-
-// $routes->get('/', 'Home::index');
+$routes->get('/', 'Home::index');
 $routes->get('/check', 'Home::connection');
 
 // users route
@@ -48,19 +47,3 @@ $routes->delete('users/team/(:num)', 'UsersController::removeUserFromTeam/$1');
 $routes->post('notifications/task', 'NotificationsController::sendTaskNotification');
 $routes->get('notifications/user/(:num)', 'NotificationsController::getUserNotifications/$1');
 $routes->put('notifications/read/(:num)', 'NotificationsController::markAsRead/$1');
-
-// Admin routes for the web application
-$routes->group('admin', static function ($routes) {
-    $routes->get('dashboard', 'AdminController::dashboard');
-    $routes->get('team', 'AdminController::team');
-    $routes->get('tasks', 'AdminController::tasks');
-});
-
-// Logout route
-$routes->get('logout', 'AdminController::logout');
-
-// Make dashboard the default route when accessing /admin
-$routes->get('admin', 'AdminController::dashboard');
-
-// Redirect root to admin dashboard as fallback
-$routes->get('/', 'AdminController::dashboard');
