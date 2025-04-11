@@ -5,7 +5,14 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-$routes->get('/', 'Home::index');
+// Web View - Default Route for Sidebar
+$routes->get('/', 'WebUIController::dashboard');
+
+// Web View - Routes for Sidebar
+$routes->get('/dashboard', 'WebUIController::dashboard');
+$routes->get('/team', 'WebUIController::team');
+$routes->get('/task', 'WebUIController::task');
+
 $routes->get('/check', 'Home::connection');
 
 // users route
