@@ -21,6 +21,7 @@ $routes->post('users/login', 'UsersController::login');
 $routes->post('users/logout', 'UsersController::logout');
 
 // tasks route
+$routes->get('tasks', 'TasksController::getAllTasks');
 $routes->post('tasks/add', 'TasksController::addTask');
 $routes->post('tasks/assign', 'TasksController::assignTask');
 $routes->get('tasks/view/(:num)', 'TasksController::viewTask/$1');

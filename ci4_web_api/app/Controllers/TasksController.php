@@ -18,6 +18,18 @@ class TasksController extends BaseController
         $this->notificationsModel = new NotificationsModel();
     }
 
+    // Get a list of all tasks
+    public function getAllTasks()
+    {
+        $tasks = $this->tasksModel->findAll();
+
+        return $this->respondWithJson(
+            true,
+            "Tasks retrieved successfully",
+            $tasks
+        );
+    }
+
     // function to create new tasks
     public function addTask()
     {
