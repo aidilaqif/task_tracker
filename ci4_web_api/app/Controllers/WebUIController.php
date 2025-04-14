@@ -12,22 +12,26 @@ class WebUIController extends BaseController
     // Dashboard view
     public function dashboard()
     {
-        return view('dashboard');
+        $data['active_menu'] = 'dashboard';
+        return view('dashboard', $data);
     }
      // Team view
      public function team()
      {
-         return view('team');
+        $data['active_menu'] = 'team';
+         return view('team', $data);
      }
       // Task view
     public function task()
     {
-        return view('task');
+        $data['active_menu'] = 'task';
+        return view('task', $data);
     }
     // Team Detail view
     public function teamDetail()
     {
-        return view('team_detail');
+        $data['active_menu'] = 'team';
+        return view('team_detail', $data);
     }
     // Check database connection
     public function connection(): void
