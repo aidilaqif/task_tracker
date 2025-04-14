@@ -23,6 +23,29 @@ class TasksController extends BaseController
     {
         $tasks = $this->tasksModel->findAll();
 
+        if ($tasks) {
+            // Initialize UsersModel
+            $usersModel = new \App\Models\UsersModel();
+
+            // Get all users and create a map of user IDs to names
+            $users = $usersModel->findAll();
+            $userMap = [];
+
+            foreach ($users as $user) {
+                $userMap[$user['id']] = $user['name'];
+            }
+
+            // Replace user_id with name in each task
+            foreach ($tasks as &$task) {
+                $userId = $task['user_id'];
+                // Check if the user_id exists in map
+                if (isset($userMap[$userId])) {
+                    $task['assigned_to'] = $userMap[$userId];
+                } else {
+                    $task['assigned_to'] = 'Unassigned';
+                }
+            }
+        }
         return $this->respondWithJson(
             true,
             "Tasks retrieved successfully",
