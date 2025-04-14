@@ -24,6 +24,11 @@ class WebUIController extends BaseController
     {
         return view('task');
     }
+    // Team Detail view
+    public function teamDetail()
+    {
+        return view('team_detail');
+    }
     // Check database connection
     public function connection(): void
     {

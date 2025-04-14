@@ -75,11 +75,16 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td>${team.name}</td>
                 <td>${team.description}</td>
                 <td>${formattedDate}</td>
+                <td class="team-actions">
+                    <button class="view-team" data-id="${team.id}">View</button>
+                    <button class="edit-team" data-id="${team.id}">Edit</button>
+                </td>
             `;
 
             tableBody.appendChild(row);
         });
 
+        addButtonEventListeners();
 
     }
 
@@ -89,6 +94,16 @@ document.addEventListener('DOMContentLoaded', function(){
         tableBody.innerHTML = `<tr><td>${message}</td></tr>`;
     }
 
+    // Function to add event listeners to the view and edit buttons
+    function addButtonEventListeners() {
+        // Add click event to view buttons
+        document.querySelectorAll('.view-team').forEach(button => {
+            button.addEventListener('click', function(){
+                const teamId = this.getAttribute('data-id');
+                window.location.href = `/teams/${teamId}/members`;
+            });
+        });
+    }
     // Fetch teams when the page loads
     fetchTeams();
 });
