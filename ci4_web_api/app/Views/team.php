@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function(){
         document.querySelectorAll('.view-team').forEach(button => {
             button.addEventListener('click', function(){
                 const teamId = this.getAttribute('data-id');
-                window.location.href = `/teams/${teamId}/members`;
+                window.location.href = `/team_detail?team_id=${teamId}`;
             });
         });
     }

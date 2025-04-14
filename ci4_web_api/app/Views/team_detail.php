@@ -29,13 +29,13 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    // Get the team ID from the URL
-    const pathParts = window.location.pathname.split('/');
-    const teamId = pathParts[pathParts.indexOf('teams') + 1];
+    // Get the team ID from the URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const teamId = urlParams.get('team_id');
 
     // Function to fetch team details and members
     function fetchTeamDetails(teamId) {
-        fetch (`/teams/${teamId}/members`)
+        fetch(`/teams/${teamId}/members`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -45,7 +45,13 @@ document.addEventListener('DOMContentLoaded', function(){
             .then(data => {
                 // Check if request successful
                 if (data.status) {
-                    displayTeamDetails(data.data.team);
+                    // Update page title with team name
+                    const titleElement = document.querySelector('.team-details-container h2');
+                    if (titleElement) {
+                        titleElement.textContent = `Team: ${data.data.team.name}`;
+                    }
+                    
+                    // Display team members
                     displayTeamMembers(data.data.members || []);
                 } else {
                     displayError(data.msg || 'Failed to fetch team details');
@@ -55,11 +61,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 console.error('Error fetching team details: ', error);
                 displayError('Error fetching team details: ' + error.message);
             });
-    }
-    // Function to display team details
-    function displayTeamDetails(team) {
-        document.getElementById('teamName').textContext = team.name;
-        document.getElementById('teamDescription').textContent = team.description || 'No description available';
     }
 
     // Function to display team members
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if (members.length === 0) {
             // If no members found, display a message
-            tableBody.innerHTML = '<tr><td>No team members found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5">No team members found</td></tr>';
             return;
         }
 
@@ -92,24 +93,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
             tableBody.appendChild(row);
         });
-
     }
 
     // Function to display error messages
     function displayError(message) {
-        const teamNameElement = document.getElementById('teamName');
-        teamNameElement.textContent = 'Error Loading Team';
-        
-        const teamDescriptionElement = document.getElementById('teamDescription');
-        teamDescriptionElement.textContent = '';
-        
         const tableBody = document.getElementById('teamMembersTableBody');
         tableBody.innerHTML = `<tr><td colspan="5" class="error-message">${message}</td></tr>`;
     }
-    console.log(teamId);
+
+    // Fetch team details if teamId is available
     if (teamId) {
-        console.log(teamId);
-        // fetchTeamDetails(teamId);
+        fetchTeamDetails(teamId);
     } else {
         displayError('No team ID specified');
     }

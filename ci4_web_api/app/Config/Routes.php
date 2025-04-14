@@ -12,7 +12,7 @@ $routes->get('/', 'WebUIController::dashboard');
 $routes->get('/dashboard', 'WebUIController::dashboard');
 $routes->get('/team', 'WebUIController::team');
 $routes->get('/task', 'WebUIController::task');
-$routes->get('/teams/(:num)/members', 'WebUIController::teamDetail/$1');
+$routes->get('/team_detail', 'WebUIController::teamDetail');
 
 $routes->get('/check', 'Home::connection');
 
