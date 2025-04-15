@@ -9,13 +9,10 @@
             <tr>
                 <th>ID</th>
                 <th>Task</th>
-                <th>Description</th>
                 <th>Assigned To</th>
                 <th>Status</th>
                 <th>Due Date</th>
                 <th>Priority</th>
-                <th>Created At</th>
-                <th>Updated At</th>
                 <th>Progress</th>
                 <th>Actions</th>
             </tr>
@@ -70,23 +67,21 @@ document.addEventListener('DOMContentLoaded', function(){
         tasks.forEach(task => {
             const row = document.createElement('tr');
 
-            // Format the date
-            const createdAt = new Date(task.created_at);
-            const formattedCreateDate = createdAt.toLocaleDateString() + '' + createdAt.toLocaleTimeString();
-            const updatedAt = new Date(task.updated_at);
-            const formattedUpdateDate = updatedAt.toLocaleDateString() + '' + updatedAt.toLocaleTimeString();
+            // Format the due date
+            let formattedDueDate = 'No due date';
+            if (task.due_date) {
+                const dueDate = new Date(task.due_date);
+                formattedDueDate = dueDate.toLocaleDateString();
+            }
 
             // Create row content
             row.innerHTML = `
                 <td>${task.id}</td>
                 <td>${task.title}</td>
-                <td>${task.description || '-'}</td>
                 <td>${task.assigned_to || 'Unassigned'}</td>
                 <td><span class="status-${task.status}">${task.status}</span></td>
-                <td>${task.due_date || '-'}</td>
+                <td>${formattedDueDate}</td>
                 <td><span class="priority-${task.priority}">${task.priority}</span></td>
-                <td>${formattedCreateDate}</td>
-                <td>${formattedUpdateDate}</td>
                 <td>${task.progress || '0'}%</td>
                 <td>
                     <button class="view" data-id="${task.id}">View</button>
