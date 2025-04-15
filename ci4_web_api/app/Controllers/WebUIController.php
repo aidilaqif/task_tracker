@@ -33,6 +33,12 @@ class WebUIController extends BaseController
         $data['active_menu'] = 'team';
         return view('team_detail', $data);
     }
+    // Task Detail View
+    public function taskDetail()
+    {
+        $data['active_menu'] = 'task';
+        return view('task_detail', $data);
+    }
     // Check database connection
     public function connection(): void
     {

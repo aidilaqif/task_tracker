@@ -89,13 +89,26 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td>${formattedUpdateDate}</td>
                 <td>${task.progress || '0'}%</td>
                 <td>
-                    <button class="action-button view" data-id="${task.id}">View</button>
-                    <button class="action-button" data-id="${task.id}">Edit</button>
+                    <button class="view" data-id="${task.id}">View</button>
+                    <button class="edit" data-id="${task.id}">Edit</button>
                 </td>
             `;
 
             tableBody.appendChild(row);
         });
+
+        addButtonEventListener();
+    }
+
+    // Function to add event listeners to the view and edit button
+    function addButtonEventListener() {
+        // Add click event to view buttons
+        document.querySelectorAll('button.view').forEach(button => {
+            button.addEventListener('click', function(){
+                const taskId = this.getAttribute('data-id');
+                window.location.href = `task_detail?task_id=${taskId}`;
+            });
+        })
     }
 
     // Function to display error messages
