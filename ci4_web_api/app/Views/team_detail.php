@@ -20,7 +20,7 @@
                 <tbody id="teamMembersTableBody">
                     <!-- Data will loaded here from API -->
                     <tr>
-                        <td>Loading team members...</td>
+                        <td colspan="5">Loading team members...</td>
                     </tr>
                 </tbody>
             </table>
@@ -86,8 +86,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td>${member.name}</td>
                 <td>${member.email}</td>
                 <td>${member.role}</td>
-                <td class="member-actions">
-                    <button class="remove-member" data-id="${member.id}">Remove</button>
+                <td>
+                    <button class="remove" data-id="${member.id}">Remove</button>
                 </td>
             `;
 
@@ -109,4 +109,14 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 </script>
+
+<style>
+.team-members-container {
+    margin-top: 30px;
+}
+.team-members-container h3 {
+    margin-bottom: 15px;
+}
+</style>
+
 <?= $this->endSection() ?>

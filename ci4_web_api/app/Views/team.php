@@ -17,7 +17,7 @@
         <tbody id="teamsTableBody">
             <!-- Load data from the API -->
             <tr>
-                <td>Loading teams data...</td>
+                <td colspan="8">Loading teams data...</td>
             </tr>
         </tbody>
     </table>
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if (teams.length === 0) {
             // If no teams found, display message
-            tableBody.innerHTML = '<tr><td>No teams found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8">No teams found</td></tr>';
             return;
         }
 
@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td>${team.description}</td>
                 <td>${formattedDate}</td>
                 <td class="team-actions">
-                    <button class="view-team" data-id="${team.id}">View</button>
-                    <button class="edit-team" data-id="${team.id}">Edit</button>
+                    <button class="view" data-id="${team.id}">View</button>
+                    <button class="edit" data-id="${team.id}">Edit</button>
                 </td>
             `;
 
@@ -91,13 +91,13 @@ document.addEventListener('DOMContentLoaded', function(){
     // Function to display error messages
     function displayError(message) {
         const tableBody = document.getElementById('teamsTableBody');
-        tableBody.innerHTML = `<tr><td>${message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
     }
 
     // Function to add event listeners to the view and edit buttons
     function addButtonEventListeners() {
         // Add click event to view buttons
-        document.querySelectorAll('.view-team').forEach(button => {
+        document.querySelectorAll('button.view').forEach(button => {
             button.addEventListener('click', function(){
                 const teamId = this.getAttribute('data-id');
                 window.location.href = `/team_detail?team_id=${teamId}`;

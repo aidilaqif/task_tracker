@@ -22,7 +22,7 @@
         <tbody id="tasksTableBody">
             <!-- Load data from the API -->
              <tr>
-                <td>Loading tasks data...</td>
+                <td colspan="8">Loading tasks data...</td>
              </tr>
         </tbody>
     </table>
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if (tasks.length === 0) {
             // If no teams found, display message
-            tableBody.innerHTML = '<tr><td>No tasks found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8">No tasks found</td></tr>';
             return;
         }
 
@@ -79,14 +79,15 @@ document.addEventListener('DOMContentLoaded', function(){
             row.innerHTML = `
                 <td>${task.id}</td>
                 <td>${task.title}</td>
-                <td>${task.description}</td>
-                <td>${task.assigned_to}</td>
-                <td>${task.status}</td>
-                <td>${task.due_date}</td>
-                <td>${task.priority}</td>
-                <td>${formattedCreateDate}</td>
-                <td>${formattedUpdateDate}</td>
-                <td>${task.progress}</td>
+                <td>${task.description || '-'}</td>
+                <td>${task.assigned_to || 'Unassigned'}</td>
+                <td><span class="status-${task.status}">${task.status}</span></td>
+                <td>${task.due_date || '-'}</td>
+                <td><span class="priority-${task.priority}">${task.priority}</span></td>
+                <td>
+                    <button class="view" data-id="${task.id}">View</button>
+                    <button data-id="${task.id}">Edit</button>
+                </td>
             `;
 
             tableBody.appendChild(row);
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // Function to display error messages
     function displayError(message) {
         const tableBody = document.getElementById('tasksTableBody');
-        tableBody.innerHTML = `<tr><td>${message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
     }
 
     // Fetch tasks when the page loads
