@@ -17,6 +17,7 @@
                 <th>Created At</th>
                 <th>Updated At</th>
                 <th>Progress</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="tasksTableBody">
@@ -84,9 +85,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td><span class="status-${task.status}">${task.status}</span></td>
                 <td>${task.due_date || '-'}</td>
                 <td><span class="priority-${task.priority}">${task.priority}</span></td>
+                <td>${formattedCreateDate}</td>
+                <td>${formattedUpdateDate}</td>
+                <td>${task.progress || '0'}%</td>
                 <td>
-                    <button class="view" data-id="${task.id}">View</button>
-                    <button data-id="${task.id}">Edit</button>
+                    <button class="action-button view" data-id="${task.id}">View</button>
+                    <button class="action-button" data-id="${task.id}">Edit</button>
                 </td>
             `;
 
