@@ -16,6 +16,7 @@
             <tr>
                 <th>Team Name</th>
                 <th>Description</th>
+                <th>Counts</th>
                 <th>Created At</th>
                 <th>Actions</th>
             </tr>
@@ -231,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Fetch teams from API
     function fetchTeams() {
-        fetch('/teams')
+        fetch('/teams/with-count')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -297,6 +298,7 @@ document.addEventListener('DOMContentLoaded', function(){
             row.innerHTML = `
                 <td>${team.name}</td>
                 <td>${team.description}</td>
+                <td>${team.member_count}</td>
                 <td>${formattedDate}</td>
                 <td class="team-actions">
                     <button class="view" data-id="${team.id}">View</button>
