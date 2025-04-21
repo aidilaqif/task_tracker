@@ -144,6 +144,13 @@ class TasksController extends BaseController
         $task = $this->tasksModel->find($id);
 
         if ($task) {
+            $usersModel = new \App\Models\UsersModel();
+            $user = $usersModel->find($task['user_id']);
+            if ($user) {
+                $task['assigned_to'] = $user['name'];
+            } else {
+                $task['assigned_to'] = 'Unassigned';
+            }
             return $this->respondWithJson(true, "Task retrieved successfully", $task);
         } else {
             return $this->respondWithJson(false, "Tasks not found", null, 404);
