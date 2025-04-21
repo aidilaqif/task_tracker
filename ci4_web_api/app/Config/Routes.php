@@ -50,6 +50,7 @@ $routes->get('teams/(:num)/metrics','TeamController::getTeamPerformanceMetrics/$
 
 // users-team related route
 $routes->get('users/team/(:num)', 'UsersController::getUsersByTeam/$1');
+$routes->get('users/no-team', 'UsersController::getUsersWithoutTeam');
 $routes->post('users/team','UsersController::updateUserTeam');
 $routes->delete('users/team/(:num)', 'UsersController::removeUserFromTeam/$1');
 

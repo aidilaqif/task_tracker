@@ -146,6 +146,22 @@ class UsersController extends BaseController
         }
         return $permissions;
     }
+    // Get users without team
+    public function getUsersWithoutTeam()
+    {
+        $users = $this->usersModel->getUsersWithoutTeam();
+
+        // Remove password from user data
+        foreach ($users as &$user) {
+            unset($user['password']);
+        }
+
+        return $this->respondWithJson(
+            true,
+            "Users without team retrieved successfully",
+            $users
+        );
+    }
     // User Logout function
     public function logout()
     {
