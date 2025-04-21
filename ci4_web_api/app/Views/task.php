@@ -29,7 +29,6 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Task</th>
                 <th>Assigned To</th>
                 <th>Status</th>
@@ -126,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
             // Create row content
             row.innerHTML = `
-                <td>${task.id}</td>
                 <td>${task.title}</td>
                 <td>${task.assigned_to || 'Unassigned'}</td>
                 <td><span class="status-${task.status}">${task.status}</span></td>

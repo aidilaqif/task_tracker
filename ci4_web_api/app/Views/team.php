@@ -7,7 +7,6 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Team Name</th>
                 <th>Description</th>
                 <th>Created At</th>
@@ -71,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
             // Create row content
             row.innerHTML = `
-                <td>${team.id}</td>
                 <td>${team.name}</td>
                 <td>${team.description}</td>
                 <td>${formattedDate}</td>
