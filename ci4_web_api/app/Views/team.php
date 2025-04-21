@@ -34,7 +34,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>Create New Team</h3>
-            <span class="close-modal">&times;</span>
+            <span class="close-modal" id="closeCreateModal">&times;</span>
         </div>
         <div class="modal-body">
             <form id="createTeamForm">
@@ -55,6 +55,32 @@
     </div>
 </div>
 
+<!-- Edit Team Modal -->
+<div id="editTeamModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Team</h3>
+            <span class="close-modal" id="closeEditModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editTeamForm">
+                <input type="hidden" id="editTeamId" name="editTeamId">
+                <div class="form-group">
+                    <label for="editTeamName">Team Name*</label>
+                    <input type="text" id="editTeamName" name="editTeamName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTeamDescription">Description</label>
+                    <textarea name="editTeamDescription" id="editTeamDescription" rows="4"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelTeamEdit" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Update Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -71,17 +97,26 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('addTeamsBtn').addEventListener('click', function() {
         document.getElementById('createTeamModal').style.display = 'block';
     });
-    
-    // Close modal when clicking the X button
-    document.querySelector('.close-modal').addEventListener('click', function() {
+
+    // Close create team modal when clicking the X button
+    document.getElementById('closeCreateModal').addEventListener('click', function() {
         document.getElementById('createTeamModal').style.display = 'none';
     });
-    
-    // Close modal when clicking the Cancel button
+
+    // Close edit modal when clicking the X button
+    document.getElementById('closeEditModal').addEventListener('click', function() {
+        document.getElementById('editTeamModal').style.display = 'none';
+    });
+
+    // Close create team modal when clicking the Cancel button
     document.getElementById('cancelTeamCreate').addEventListener('click', function() {
         document.getElementById('createTeamModal').style.display = 'none';
     });
     
+    // Close edit modal modal when clicking the Cancel button
+    document.getElementById('cancelTeamEdit').addEventListener('click', function(){
+        document.getElementById('editTeamModal').style.display = 'none';
+    });
     // Handle team creation form submission
     document.getElementById('createTeamForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -127,11 +162,62 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 
+    // Handle team edit form submission
+    document.getElementById('editTeamForm').addEventListener('submit', function(e){
+        e.preventDefault();
+
+        const teamId = document.getElemenyById('editTeamId').value;
+        const teamName = document.getElemenyById('editTeamName').value;
+        const teamDescription = document.getElemenyById('editTeamDescription').value;
+
+        // Create data object for API
+        const data = {
+            name: teamName,
+            description: teamDescription
+        };
+
+        // Call the API to update team
+        fetch(`/teams/${teamId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok')
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - refresh team list
+                fetchTeams();
+                // Close modal
+                document.getElementById('editTeamModal').style.display = 'none';
+                alert('Team updated successfully!');
+            } else {
+                alert(data.msg || 'Failed to update team');
+            }
+        })
+        .catch(error => {
+            console.error('Error udpating team:', error);
+            alert('Error updating team: ' + error.message);
+        });
+    });
+
     // Close modal when clicking outside the modal content
     window.addEventListener('click', function(event) {
-        const modal = document.getElementById('createTeamModal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
+        const createModal = document.getElementById('createTeamModal');
+        const editModal = document.getElementById('editTeamModal');
+
+        if (event.target === createModal) {
+            createModal.style.display = 'none';
+        }
+
+        if (event.target === editModal) {
+            editModal.style.display = 'none';
         }
     });
 
@@ -139,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.addEventListener('keydown', function(event){
         if (event.key === "Escape") {
             document.getElementById('createTeamModal').style.display = 'none';
+            document.getElementById('editTeamModal').style.display = 'none';
         }
     });
 
@@ -165,6 +252,26 @@ document.addEventListener('DOMContentLoaded', function(){
                 displayError('Error fetching teams data: ' + error.message);
             });
     }
+
+    // Open edit modal and populate with team data
+    function openEditModal(teamId) {
+        // Find team data from global teams array
+        const team = window.allTeams.find(t => t.id == teamId);
+
+        if (!team) {
+            alert('Could not find team data');
+            return;
+        }
+
+        // Populate the form fields
+        document.getElementById('editTeamId').value = team.id;
+        document.getElementById('editTeamName').value = team.name;
+        document.getElementById('editTeamDescription').value = team.description || '';
+
+        // Show the modal
+        document.getElementById('editTeamModal').style.display = 'block';
+    }
+
     // Display teams in the table
     function displayTeams(teams) {
         const tableBody = document.getElementById('teamsTableBody');
@@ -216,8 +323,8 @@ document.addEventListener('DOMContentLoaded', function(){
         // Add click event to edit buttons
         document.querySelectorAll('button.edit').forEach(button => {
             button.addEventListener('click', function(){
-                const taskId = this.getAttribute('data-id');
-                alert(`Edit task ${taskId} functionality would go here`);
+                const teamId = this.getAttribute('data-id');
+                openEditModal(teamId);
             });
         });
     }
