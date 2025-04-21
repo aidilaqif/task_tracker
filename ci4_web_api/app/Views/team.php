@@ -2,8 +2,15 @@
 
 <?= $this->section('content') ?>
 <div class="teams-container">
-    <h2>Team</h2>
-    <p>This is the team section</p>
+    <div class="page-header">
+        <h2>Teams</h2>
+        <button id="addTeamsBtn" class="action-button add">Add New Team</button>
+    </div>
+    <div class="filters-container">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search teams...">
+        </div>
+    </div>
     <table>
         <thead>
             <tr>
@@ -25,6 +32,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+    // Declare a variable to store all teams for filtering
+    window.allTeams =[];
+
+    // Fetch teams when the page loads
+    fetchTeams();
+
+    // Add event listeners for filters
+    document.getElementById('searchInput').addEventListener('input', filterTeams);
+
     // Fetch teams from API
     function fetchTeams() {
         fetch('/teams')
@@ -37,7 +53,8 @@ document.addEventListener('DOMContentLoaded', function(){
             .then(data => {
                 // Check if the request successful
                 if (data.status) {
-                    displayTeams(data.data || []);
+                    window.allTeams = data.data || [];
+                    displayTeams(window.allTeams);
                 } else {
                     displayError(data.msg || 'Failed to fetch teams');
                 }
@@ -86,12 +103,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
     }
 
-    // Function to display error messages
-    function displayError(message) {
-        const tableBody = document.getElementById('teamsTableBody');
-        tableBody.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
-    }
-
     // Function to add event listeners to the view and edit buttons
     function addButtonEventListeners() {
         // Add click event to view buttons
@@ -101,10 +112,81 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.location.href = `/team_detail?team_id=${teamId}`;
             });
         });
+        // Add click event to edit buttons
+        document.querySelectorAll('button.edit').forEach(button => {
+            button.addEventListener('click', function(){
+                const taskId = this.getAttribute('data-id');
+                alert(`Edit task ${taskId} functionality would go here`);
+            });
+        });
     }
-    // Fetch teams when the page loads
-    fetchTeams();
+
+    // Function to filter teams based on search input
+    function filterTeams() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+        // Check if there are teams to filter
+        if (!window.allTeams || window.allTeams.length === 0) return;
+
+        // Apply filters
+        const filteredTeams = window.allTeams.filter(team => {
+            // Search term filter
+            const matchesSearch = team.name.toLowerCase().includes(searchTerm) || (team.description && team.description.toLowerCase().includes(searchTerm));
+
+            return  matchesSearch;
+        });
+
+        displayTeams(filteredTeams);
+    }
+
+    // Function to display error messages
+    function displayError(message) {
+        const tableBody = document.getElementById('teamsTableBody');
+        tableBody.innerHTML = `<tr><td colspan="8" class="error-message">${message}</td></tr>`;
+    }
+
 });
 </script>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items:center;
+        margin-bottom: 20px;
+    }
+
+    .action-button.add {
+        background-color: #28a745;
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .filters-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .search-container {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .search-container input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+
+    .error-message {
+        color: #dc3545;
+        text-align: center;
+        padding: 20px;
+    }
+</style>
 
 <?= $this->endSection() ?>
