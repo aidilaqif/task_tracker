@@ -29,6 +29,32 @@
     </table>
 </div>
 
+<!-- Create Team Modal -->
+<div id="createTeamModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Team</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="createTeamForm">
+                <div class="form-group">
+                    <label for="teamName">Team Name*</label>
+                    <input type="text" id="teamName" name="teamName" required>
+                </div>
+                <div class="form-group">
+                    <label for="teamDescription">Description</label>
+                    <textarea id="teamDescription" name="teamDescription" rows="4"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelTeamCreate" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Create Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -40,6 +66,81 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Add event listeners for filters
     document.getElementById('searchInput').addEventListener('input', filterTeams);
+
+    // Add Team button event listener
+    document.getElementById('addTeamsBtn').addEventListener('click', function() {
+        document.getElementById('createTeamModal').style.display = 'block';
+    });
+    
+    // Close modal when clicking the X button
+    document.querySelector('.close-modal').addEventListener('click', function() {
+        document.getElementById('createTeamModal').style.display = 'none';
+    });
+    
+    // Close modal when clicking the Cancel button
+    document.getElementById('cancelTeamCreate').addEventListener('click', function() {
+        document.getElementById('createTeamModal').style.display = 'none';
+    });
+    
+    // Handle team creation form submission
+    document.getElementById('createTeamForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const teamName = document.getElementById('teamName').value;
+        const teamDescription = document.getElementById('teamDescription').value;
+        
+        // Create data object for API
+        const data = {
+            name: teamName,
+            description: teamDescription
+        };
+        
+        // Call the API to create team
+        fetch('/teams', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - refresh team list
+                fetchTeams();
+                // Reset form and close modal
+                document.getElementById('createTeamForm').reset();
+                document.getElementById('createTeamModal').style.display = 'none';
+                alert('Team created successfully!');
+            } else {
+                alert(data.msg || 'Failed to create team');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating team:', error);
+            alert('Error creating team: ' + error.message);
+        });
+    });
+
+    // Close modal when clicking outside the modal content
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('createTeamModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Add escape key support to close modal
+    document.addEventListener('keydown', function(event){
+        if (event.key === "Escape") {
+            document.getElementById('createTeamModal').style.display = 'none';
+        }
+    });
 
     // Fetch teams from API
     function fetchTeams() {
@@ -186,6 +287,136 @@ document.addEventListener('DOMContentLoaded', function(){
         color: #dc3545;
         text-align: center;
         padding: 20px;
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000; /* Ensure it's above other content */
+        transition: all 0.3s ease;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        margin: 0 auto;
+        position: relative;
+        top: 0;
+        transform: translateY(0);
+        animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #212529;
+    }
+
+    .close-modal {
+        font-size: 24px;
+        font-weight: bold;
+        color: #adb5bd;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close-modal:hover {
+        color: #495057;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        border-color: #80bdff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .cancel-button {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .cancel-button:hover {
+        background-color: #5a6268;
+    }
+
+    .submit-button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .submit-button:hover {
+        background-color: #218838;
     }
 </style>
 
