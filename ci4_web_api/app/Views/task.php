@@ -47,6 +47,52 @@
     </table>
 </div>
 
+<!-- Create Task Modal -->
+<div id="addTaskModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Create New Task</h3>
+            <span class="close-modal" id="closeAddTaskModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="createTaskForm">
+                <div class="form-group">
+                    <label for="taskTitle">Task Title*</label>
+                    <input type="text" id="taskTitle" name="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Description</label>
+                    <textarea name="taskDescription" id="taskDescription" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="assignedTo">Assign To*</label>
+                    <select name="assignedTo" id="assignedTo" required>
+                        <option value="">Select user...</option>
+                        <!-- Users will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="dueDate">Due Date</label>
+                    <input type="date" id="dueDate" name="dueDate">
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">Priority*</label>
+                    <select name="taskPriority" id="taskPriority" required>
+                        <option value="">Select priority...</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelTaskCreate" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     // Declare a variable to store all tasks for filtering
@@ -60,9 +106,176 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('statusFilter').addEventListener('change', filterTasks);
     document.getElementById('priorityFilter').addEventListener('change', filterTasks);
 
-    // Add task button event listener
+    // Add Task button event listener
     document.getElementById('addTaskBtn').addEventListener('click', function(){
-        // console('Add Task');
+        fetchUsers();
+        document.getElementById('addTaskModal').style.display = 'block';
+    });
+
+    // Close add task modal when clicking X
+    document.getElementById('closeAddTaskModal').addEventListener('click', function(){
+        document.getElementById('addTaskModal').style.display = 'none';
+    });
+
+    // Close create task modal when clicking Cancel button
+    document.getElementById('cancelTaskCreate').addEventListener('click', function(){
+        document.getElementById('addTaskModal').style.display = 'none';
+    });
+
+    // Handle task creation form submission
+    document.getElementById('createTaskForm').addEventListener('submit', function(e){
+        e.preventDefault();
+
+        const taskTitle = document.getElementById('taskTitle').value;
+        const taskDescription = document.getElementById('taskDescription').value;
+        const userId = document.getElementById('assignedTo').value;
+        const dueDate = document.getElementById('dueDate').value;
+        const priority = document.getElementById('taskPriority').value;
+
+        // Create data object for API
+        const data = {
+            user_id: parseInt(userId),
+            title: taskTitle,
+            description: taskDescription,
+            due_date: dueDate || null,
+            status: 'pending',
+            priority: priority
+        };
+
+        // Call the API to create task
+        fetch('/tasks/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - refresh task list
+                fetchTasks();
+                // Reset form and close modal
+                document.getElementById('createTaskForm').reset();
+                document.getElementById('addTaskModal').style.display = 'none';
+                alert('Task created successfully!');
+            } else {
+                alert(data.msg || 'Failed to create task');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating task:', error);
+            alert('Error creating task: ' + error.message);
+        });
+    });
+
+    // Function to fetch users for assingment dropdown
+    function fetchUsers() {
+        // Array to hold al promises for fetching users
+        const fetchPromises = [];
+
+        // Fetch users without a team
+        fetchPromises.push(
+            fetch('/users/no-team')
+                .then(response => response.json())
+                .then(data => data.status ? data.data || [] : [])
+                .catch(error => {
+                    console.error('Error fetching users without team:', error);
+                    return [];
+                })
+        );
+
+        // Fetch teams to get their IDs
+        fetch('/teams/with-count')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status && data.data) {
+                    // For each team, fetch its users
+                    data.data.forEach(team => {
+                        fetchPromises.push(
+                            fetch(`/users/team/${team.id}`)
+                                .then(response => response.json())
+                                .then(data => data.status ? data.data || [] : [])
+                                .catch(error => {
+                                    console.error(`Error fetching users for team ${team.id}:`);
+                                    return [];
+                                })
+                        );
+                    });
+
+                    // Wait for all fetches to complete
+                    Promise.all(fetchPromises)
+                        .then(results => {
+                            // Combine all users fromn different sources
+                            let allUsers = [];
+                            results.forEach(users => {
+                                allUsers = [...allUsers, ...users];
+                            });
+
+                            // Remove duplicates
+                            const uniqueUsers = [...new Map(allUsers.map(user => [user.id, user])).values()];
+
+                            // Update dropdown
+                            updateUserDropdown(uniqueUsers);
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetchin teams:', error);
+                // If fetching teams fails, try to get users without teams
+                Promise.all(fetchPromises)
+                    .then(results => {
+                        let allUsers = [];
+                        results.forEach(users => {
+                            allUsers = [...allUsers, ...users];
+                        });
+                        updateUsersDropdown(allUsers);
+                    });
+            });
+    }
+
+    // Function to update the users dropdown
+    function updateUserDropdown(users) {
+        const dropdown = document.getElementById('assignedTo');
+
+        // Clear existing options except the default one
+        dropdown.innerHTML = '<option value="">Select user...</option>';
+
+        if (users.length === 0) {
+            dropdown.innerHTML += '<option value="" disabled>No users found</option>';
+            return;
+        }
+
+        // Add users to dropdown, avoid duplicates
+        const addedUserIds = new Set();
+
+        users.forEach(user => {
+            if (!addedUserIds.has(user.id)) {
+                dropdown.innerHTML += `<option value="${user.id}">${user.name} (${user.email})</option>`;
+                addedUserIds.add(user.id);
+            }
+        });
+    }
+
+    // Close modal when clicking outside the modal content
+    window.addEventListener('click', function(event){
+        const addTaskModal = document.getElementById('addTaskModal');
+
+        if (event.target === addTaskModal) {
+            addTaskModal.style.display = 'none';
+        }
+    });
+
+    // Add escape key support to close modal
+    document.addEventListener('keydown', function(event){
+        if (event.key === "Escape") {
+            document.getElementById('addTaskModal').style.display = 'none';
+        }
     });
 
     // Fetch tasks from API
@@ -287,6 +500,137 @@ document.addEventListener('DOMContentLoaded', function(){
         padding: 20px;
     }
 
+    /* Modal Style */
+    .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000; /* Ensure it's above other content */
+    transition: all 0.3s ease;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin: 0 auto;
+    position: relative;
+    top: 0;
+    transform: translateY(0);
+    animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #212529;
+}
+
+.close-modal {
+    font-size: 24px;
+    font-weight: bold;
+    color: #adb5bd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal:hover {
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #80bdff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+.submit-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.submit-button:hover {
+    background-color: #218838;
+}
 
 </style>
 
