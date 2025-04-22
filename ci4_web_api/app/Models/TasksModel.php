@@ -12,7 +12,7 @@ class TasksModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['user_id', 'title', 'description', 'due_date', 'status', 'priority'];
+    protected $allowedFields    = ['user_id', 'title', 'description', 'due_date', 'status', 'priority', 'progress'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -33,8 +33,9 @@ class TasksModel extends Model
         'title' => 'required|max_length[255]',
         'description' => 'permit_empty', // can be null
         'due_date' => 'permit_empty|valid_date',
-        'status' => 'required|in_list[pending, in-progress, completed]', // define that it can only be those 3 values
+        'status' => 'required|in_list[pending, in-progress, completed, request-extension]', // define that it can only be those 4 values
         'priority' => 'required|in_list[low, medium, high]',
+        'progress' => 'permit_empty|integer|greater_than_equal_to[0]|less_than_equal_to[100]',
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
