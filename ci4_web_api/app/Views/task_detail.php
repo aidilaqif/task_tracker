@@ -136,6 +136,29 @@
     </div>
 </div>
 
+<!-- Progress Update Modal -->
+<div id="updateProgressModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Task Progress</h3>
+            <span class="close-modal" id="closeProgressModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="updateProgressForm">
+                <input type="hidden" id="progressTaskId">
+                <div class="form-group">
+                    <label for="newTaskProgress">*Progress (%)</label>
+                    <input type="number" id="updateTaskProgress" name="updateTaskProgress" min="0" max="100" value="0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelProgressButton" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function (){
         // Get task ID from the URL query parameter
@@ -197,19 +220,41 @@
 
         // Update Progress button event listener
         document.getElementById('updateProgressBtn').addEventListener('click', function(){
-            alert('Progress update functionality soon be implemented');
+            openProgressModal();
         });
+
+        // Close progress modal when clicking X
+        document.getElementById('closeProgressModal').addEventListener('click', function(){
+            document.getElementById('updateProgressModal').style.display = 'none';
+        });
+
+        // Close progress modal when clicking Cancel button
+        document.getElementById('cancelProgressButton').addEventListener('click', function(){
+            document.getElementById('updateProgressModal').style.display = 'none';
+        });
+
+        // Handle progress update form submission
+        document.getElementById('updateProgressForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            updateTaskProgress();
+        })
 
         // Close modal when clicking outside
         window.addEventListener('click', function(event){
             const editModal = document.getElementById('editTaskModal');
             const statusModal = document.getElementById('updateStatusModal');
+            const progressModal = document.getElementById('updateProgressModal');
+
             if (event.target === editModal) {
                 editModal.style.display = 'none';
             }
 
             if (event.target === statusModal) {
                 statusModal.style.display = 'none';
+            }
+
+            if (event.target === progressModal) {
+                progressModal.style.display = 'none';
             }
         });
 
@@ -218,6 +263,7 @@
             if (event.key === "Escape") {
                 document.getElementById('editTaskModal').style.display = 'none';
                 document.getElementById('updateStatusModal').style.display = 'none';
+                document.getElementById('updateProgressModal').style.display = 'none';
             }
         });
     });
@@ -429,6 +475,69 @@
             console.error('Error updating task status:', error);
             alert('Error updating task status: ' + error.message);
         });
+    }
+
+    function openProgressModal(){
+        if (!window.currentTask) {
+            alert('Task data not available');
+            return;
+        }
+
+        const task = window.currentTask;
+
+        // Set task ID
+        document.getElementById('progressTaskId').value = task.id;
+
+        // Set current progress
+        document.getElementById('updateTaskProgress').value = task.progress || 0;
+        // Show the modal
+        document.getElementById('updateProgressModal').style.display = 'block';
+    }
+
+    function updateTaskProgress(){
+        const taskId = window.currentTask.id;
+        const progress = parseInt(document.getElementById('updateTaskProgress').value);
+
+        // Validate progress value
+        if (isNaN(progress) || progress < 0 || progress > 100) {
+            alert('Please enter a valid progress value between 0 and 100');
+            return;
+        }
+
+        // Call the API to update task progress
+        fetch(`/tasks/progress/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ progress: progress })
+        })
+        .then(response => {
+            if(!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then( data => {
+            if (data.status) {
+                // Success - udpate UI with new task data
+                window.currentTask = data.data;
+                displayTaskDetails(data.data);
+
+                // Close modal
+                document.getElementById('updateProgressModal').style.display = 'none';
+
+                // Show success message
+                alert('Task progress updated successfully!');
+            } else {
+                alert(data.msg || 'Failed to update task progress');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating task progress:', error);
+            alert('Error updating task progress: ' + error.message);
+        });
+
     }
 
     function displayError(message) {
