@@ -93,6 +93,65 @@
     </div>
 </div>
 
+<!-- Edit Task Modal -->
+<div id="editTaskModal" class="modal" style="display:none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Task</h3>
+            <span class="close-modal" id="closeEditTaskModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editTaskForm">
+                <input type="hidden" id="editTaskId" name="editTaskId">
+                <div class="form-group">
+                    <label for="editTaskTitle">Task Title*</label>
+                    <input type="text" id="editTaskTitle" name="editTaskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskDescription">Description</label>
+                    <textarea name="editTaskDescription" id="editTaskDescription" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editAssignedTo">Assign To*</label>
+                    <select name="editAssignedTo" id="editAssignedTo" required>
+                        <option value="">Select user...</option>
+                        <!-- Users will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editDueDate">Due Date</label>
+                    <input type="date" id="editDueDate" name="editDueDate">
+                </div>
+                <div class="form-group">
+                    <label for="editTaskStatus">Status*</label>
+                    <select name="editTaskStatus" id="editTaskStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="request-extension">Request Extension</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskPriority">Priority*</label>
+                    <select name="editTaskPriority" id="editTaskPriority" required>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskProgress">Progress (%)</label>
+                    <input type="number" id="editTaskProgress" name="editTaskProgress" min="0" max="100" value="0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelTaskEdit" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Update Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     // Declare a variable to store all tasks for filtering
@@ -117,9 +176,19 @@ document.addEventListener('DOMContentLoaded', function(){
         document.getElementById('addTaskModal').style.display = 'none';
     });
 
+    // Clode edit task modal when clicking X
+    document.getElementById('closeEditTaskModal').addEventListener('click', function(){
+        document.getElementById('editTaskModal').style.display = 'none';
+    });
+
     // Close create task modal when clicking Cancel button
     document.getElementById('cancelTaskCreate').addEventListener('click', function(){
         document.getElementById('addTaskModal').style.display = 'none';
+    });
+
+    // Close edit task modal when clicking Cancel button
+    document.getElementById('cancelTaskEdit').addEventListener('click', function(){
+        document.getElementById('editTaskModal').style.display = 'none';
     });
 
     // Handle task creation form submission
@@ -174,100 +243,225 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 
+    // Handle task edit form submission
+    document.getElementById('editTaskForm').addEventListener('submit', function(e){
+        e.preventDefault();
+
+        const taskId = document.getElementById('editTaskId').value;
+        const taskTitle = document.getElementById('editTaskTitle').value;
+        const taskDescription = document.getElementById('editTaskDescription').value;
+        const userId = document.getElementById('editAssignedTo').value;
+        const dueDate = document.getElementById('editDueDate').value;
+        const status = document.getElementById('editTaskStatus').value;
+        const priority = document.getElementById('editTaskPriority').value;
+        const progress = document.getElementById('editTaskProgress').value;
+
+        // Update progress
+        fetch(`/tasks/progress/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                progress: parseInt(progress)
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.warn('Progress update failed, continuing with general update');
+                return { status: false };
+            }
+            return response.json();
+        })
+        .then ((progressResponse) => {
+            // Get the automatically updated status if available
+            let updatedStatus = status; // Default to the form value
+        
+            if (progressResponse && progressResponse.status && progressResponse.data) {
+                // If the progress update was successful and returned the updated task, use the status from the response
+                console.log("Progress update response:", progressResponse);
+                updatedStatus = progressResponse.data.status;
+                console.log("Status after progress update:", updatedStatus);
+            }
+            // Create data object for API
+            const data = {
+                user_id: parseInt(userId),
+                title: taskTitle,
+                description: taskDescription,
+                due_date: dueDate || null,
+                status: updatedStatus,
+                priority: priority,
+            };
+
+            // Call the API to update task
+            return fetch(`/tasks/edit/${taskId}`,{
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - refresh task list
+                fetchTasks();
+                // Close modal
+                document.getElementById('editTaskModal').style.display = 'none';
+                alert('Task updated successfully!');
+            } else {
+                alert(data.msg || 'Failed to update task');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating task:', error);
+            alert('Error updating task: ' + error.message);
+        });
+    });
+
     // Function to fetch users for assingment dropdown
     function fetchUsers() {
-        // Array to hold al promises for fetching users
-        const fetchPromises = [];
+        // Clear existing options first
+        const addDropdown = document.getElementById('assignedTo');
+        const editDropdown = document.getElementById('editAssignedTo');
 
-        // Fetch users without a team
-        fetchPromises.push(
-            fetch('/users/no-team')
-                .then(response => response.json())
-                .then(data => data.status ? data.data || [] : [])
-                .catch(error => {
-                    console.error('Error fetching users without team:', error);
-                    return [];
-                })
-        );
+        if (addDropdown) addDropdown.innerHTML = '<option value="">Select user...</option>';
+        if (editDropdown) editDropdown.innerHTML = '<option value="">Select user...</option>';
 
-        // Fetch teams to get their IDs
-        fetch('/teams/with-count')
+        // Fetch all available users - without team and with team
+        const fetchNoTeamUsers = fetch('/users/no-team')
+            .then(response => response.json())
+            .then(data => data.status ? data.data || [] : [])
+            .catch(error => {
+                console.error('Error fetching users without team:', error);
+                return [];
+            });
+
+        // Fetch teams to get users from each team
+        const fetchTeamsAndUsers = fetch('/teams/with-count')
             .then(response => response.json())
             .then(data => {
-                if (data.status && data.data) {
-                    // For each team, fetch its users
-                    data.data.forEach(team => {
-                        fetchPromises.push(
-                            fetch(`/users/team/${team.id}`)
-                                .then(response => response.json())
-                                .then(data => data.status ? data.data || [] : [])
-                                .catch(error => {
-                                    console.error(`Error fetching users for team ${team.id}:`);
-                                    return [];
-                                })
-                        );
-                    });
+                if (!data.status && !data.data) return[];
 
-                    // Wait for all fetches to complete
-                    Promise.all(fetchPromises)
-                        .then(results => {
-                            // Combine all users fromn different sources
-                            let allUsers = [];
-                            results.forEach(users => {
-                                allUsers = [...allUsers, ...users];
-                            });
+                // Create an array of promises for fetching users from each team
+                const teamUserPromises = data.data.map(team =>
+                    fetch(`/users/team/${team.id}`)
+                        .then(response => response.json())
+                        .then(data => data.status ? data.data || [] : [])
+                        .catch(error => {
+                            console.error(`Error fetching users for team ${team.id}:`, error);
+                            return [];
+                        })
+                );
 
-                            // Remove duplicates
-                            const uniqueUsers = [...new Map(allUsers.map(user => [user.id, user])).values()];
-
-                            // Update dropdown
-                            updateUserDropdown(uniqueUsers);
-                        });
-                }
+                // Wait for all team user request to complete
+                return Promise.all(teamUserPromises);
+            })
+            .then(teamUserResults =>{
+                // Flatten the array of arrays into a single array of users
+                return teamUserResults.flat();
             })
             .catch(error => {
-                console.error('Error fetchin teams:', error);
-                // If fetching teams fails, try to get users without teams
-                Promise.all(fetchPromises)
-                    .then(results => {
-                        let allUsers = [];
-                        results.forEach(users => {
-                            allUsers = [...allUsers, ...users];
-                        });
-                        updateUsersDropdown(allUsers);
-                    });
+                console.error('Error fetching teams or team users:', error);
+                return [];
+            });
+
+        // Wait for both user fetching operations to complete
+        return Promise.all([fetchNoTeamUsers, fetchTeamsAndUsers])
+            .then(results => {
+                // Combine all users from different sources
+                const allUsers = [...results[0], ...results[1]];
+
+                // Remove duplicates by user id
+                const uniqueUsers = [...new Map(allUsers.map(user => [user.id, user])).values()];
+
+                // Update dropdowns
+                updateUserDropdown(uniqueUsers);
+
+                return uniqueUsers;
             });
     }
 
     // Function to update the users dropdown
     function updateUserDropdown(users) {
-        const dropdown = document.getElementById('assignedTo');
-
-        // Clear existing options except the default one
-        dropdown.innerHTML = '<option value="">Select user...</option>';
+        const addDropdown = document.getElementById('assignedTo');
+        const editDropdown = document.getElementById('editAssignedTo');
 
         if (users.length === 0) {
-            dropdown.innerHTML += '<option value="" disabled>No users found</option>';
+            const noUsersOption = '<option value="" disabled>No users found</option>';
+            if (addDropdown) addDropdown.innerHTML += noUsersOption;
+            if (editDropdown) editDropdown.innerHTML += noUsersOption;
             return;
         }
 
-        // Add users to dropdown, avoid duplicates
-        const addedUserIds = new Set();
-
+        // Add users to dropdown
         users.forEach(user => {
-            if (!addedUserIds.has(user.id)) {
-                dropdown.innerHTML += `<option value="${user.id}">${user.name} (${user.email})</option>`;
-                addedUserIds.add(user.id);
-            }
+            const option = `<option value="${user.id}">${user.name} (${user.email || 'No email'})</option>`;
+                if (addDropdown) addDropdown.innerHTML += option;
+                if (editDropdown) editDropdown.innerHTML += option;
+        });
+    }
+
+    // Open edit modal and populate date
+    function openEditTaskModal(taskId) {
+        // Find the task in global tasks array
+        const task = window.allTasks.find(t => t.id == taskId);
+
+        if (!task) {
+            alert('Could not find task data');
+            return;
+        }
+        // Fetch users for dropdown
+        fetchUsers()
+            .then(() => {
+                // Populate form fields with task data
+                document.getElementById('editTaskId').value = task.id;
+                document.getElementById('editTaskTitle').value = task.title;
+                document.getElementById('editTaskDescription').value = task.description || '';
+                document.getElementById('editAssignedTo').value = task.user_id;
+
+                // Set due data if it exists
+                if (task.due_date) {
+                    // Format date to YYYY-MM-DD for date input
+                    const dueDate = new Date(task.due_date);
+                    const year = dueDate.getFullYear();
+                    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(dueDate.getDate()).padStart(2, '0');
+                    document.getElementById('editDueDate').value = `${year}-${month}-${day}`;
+                } else {
+                    document.getElementById('editDueDate').value = '';
+                }
+
+                document.getElementById('editTaskStatus').value = task.status;
+                document.getElementById('editTaskPriority').value = task.priority;
+                document.getElementById('editTaskProgress').value = task.progress || 0;
+
+                // Show modal
+                document.getElementById('editTaskModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error preparing edit modal:', error);
+            alert('Error loading users: ' + error.message);
         });
     }
 
     // Close modal when clicking outside the modal content
     window.addEventListener('click', function(event){
         const addTaskModal = document.getElementById('addTaskModal');
+        const editTaskModal = document.getElementById('editTaskModal');
 
         if (event.target === addTaskModal) {
             addTaskModal.style.display = 'none';
+        }
+
+        if (event.target === editTaskModal) {
+            editTaskModal.style.display = 'none';
         }
     });
 
@@ -275,6 +469,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.addEventListener('keydown', function(event){
         if (event.key === "Escape") {
             document.getElementById('addTaskModal').style.display = 'none';
+            document.getElementById('editTaskModal').style.display = 'none';
         }
     });
 
@@ -369,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function(){
         document.querySelectorAll('button.edit').forEach(button => {
             button.addEventListener('click', function(){
                 const taskId = this.getAttribute('data-id');
-                alert(`Edit task ${taskId} functionality would go here`);
+                openEditTaskModal(taskId);
             });
         });
     }
