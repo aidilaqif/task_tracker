@@ -5,7 +5,7 @@
     <div class="back-button">
         <a href="<?= site_url('/task') ?>" class="btn-back"><i class="fas fa-arrow-left"></i>Back to Tasks</a>
     </div>
-    
+
     <div class="task-header">
         <h2 id="taskTitle">Task Details</h2>
         <div class="task-meta">
@@ -60,11 +60,62 @@
     </div>
 </div>
 
+<!-- Edit Task Modal -->
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Task</h3>
+            <span class="close-modal" id="closeEditTaskModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editTaskForm">
+                <input type="hidden" id="editTaskId">
+                <div class="form-group">
+                    <label for="editTaskTitle">Task Title*</label>
+                    <input type="text" id="editTaskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskDescription">Description</label>
+                    <textarea id="editTaskDescription" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editDueDate">Due Date</label>
+                    <input type="date" id="editDueDate">
+                </div>
+                <div class="form-group">
+                    <label for="editTaskPriority">Priority*</label>
+                    <select id="editTaskPriority" required>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editTaskStatus">Status*</label>
+                    <select id="editTaskStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="request-extension">Request Extension</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelEditBtn" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Update Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function (){
         // Get task ID from the URL query parameter
         const urlParams = new URLSearchParams(window.location.search);
         const taskId = urlParams.get('task_id');
+
+        // Store current task data globally
+        window.currentTask = null;
 
         if (!taskId) {
             displayError('No task ID specified');
@@ -74,17 +125,50 @@
         // Fetch task details
         fetchTaskDetails(taskId);
 
-        // Add event listeners for action buttons
+        // Edit Task button event listener
         document.getElementById('editTaskBtn').addEventListener('click', function(){
-            alert('Edit functionality soon be implemented');
+            openEditTaskModal();
         });
 
+        // Close edit task modal when clicking X
+        document.getElementById('closeEditTaskModal').addEventListener('click', function(){
+            document.getElementById('editTaskModal').style.display = 'none';
+        });
+
+        // Close edit task modal when clicking Cancel button
+        document.getElementById('cancelEditBtn').addEventListener('click', function(){
+            document.getElementById('editTaskModal').style.display = 'none';
+        });
+
+        // Handle edit task form submission
+        document.getElementById('editTaskForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            updateTask();
+        });
+
+        // Update Status button event listener
         document.getElementById('updateStatusBtn').addEventListener('click', function(){
             alert('Status update functionality soon be implemented');
         });
 
+        // Update Progress button event listener
         document.getElementById('updateProgressBtn').addEventListener('click', function(){
             alert('Progress update functionality soon be implemented');
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event){
+            const modal = document.getElementById('editTaskModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Add escape key support to close modal
+        document.addEventListener('keydown', function(event){
+            if (event.key === "Escape") {
+                document.getElementById('editTaskModal').style.display = 'none';
+            }
         });
     });
 
@@ -98,6 +182,7 @@
             })
             .then(data => {
                 if (data.status) {
+                    window.currentTask = data.data;
                     displayTaskDetails(data.data);
                 } else {
                     displayError(data.msg || 'Failed to fetch task details');
@@ -150,6 +235,89 @@
 
         // Update progress text
         document.getElementById('progressValue').textContent = progress + '%';
+    }
+
+    function openEditTaskModal() {
+        if (!window.currentTask) {
+            alert('Task data not available');
+            return;
+        }
+
+        const task = window.currentTask;
+
+        // Populate form with current task data
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        document.getElementById('editTaskStatus').value = task.status;
+        document.getElementById('editTaskPriority').value = task.priority;
+
+        // Format and set due date if available
+        if (task.due_date) {
+            // Format date to YYYY-MM-DD for date input
+            const dueDate = new Date(task.due_date);
+            const year = dueDate.getFullYear();
+            const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+            const day = String(dueDate.getDate()).padStart(2, '0');
+            document.getElementById('editDueDate').value = `${year}-${month}-${day}`;
+        } else {
+            document.getElementById('editDueDate').value = '';
+        }
+
+        // Show the modal
+        document.getElementById('editTaskModal').style.display = 'block';
+    }
+
+    function updateTask() {
+        const taskId = document.getElementById('editTaskId').value;
+        const title = document.getElementById('editTaskTitle').value;
+        const description = document.getElementById('editTaskDescription').value;
+        const dueDate = document.getElementById('editDueDate').value;
+        const status = document.getElementById('editTaskStatus').value;
+        const priority = document.getElementById('editTaskPriority').value;
+
+        // Create data object for API
+        const data = {
+            title: title,
+            description: description,
+            due_date: dueDate || null,
+            status: status,
+            priority: priority,
+        };
+
+        // Call the API to update task
+        fetch(`/tasks/edit/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - update the UI with the new task data
+                window.currentTask = data.data;
+                displayTaskDetails(data.data);
+
+                // Close the modal
+                document.getElementById('editTaskModal').style.display = 'none';
+
+                // Show success message
+                alert('Task updated successfully!');
+            } else {
+                alert(data.msg || 'Failed to update task');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating task:', error);
+            alert('Error updating task: ' + error.message);
+        });
     }
 
     function formatDate(date) {
@@ -342,6 +510,139 @@
         padding: 8px 16px;
         background-color: #f8f9fa;
         border-radius: 4px;
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow: auto;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        margin: 0 auto;
+        position: relative;
+        top: 0;
+        transform: translateY(0);
+        animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #212529;
+    }
+
+    .close-modal {
+        font-size: 24px;
+        font-weight: bold;
+        color: #adb5bd;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close-modal:hover {
+        color: #495057;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        border-color: #80bdff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .cancel-button {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .cancel-button:hover {
+        background-color: #5a6268;
+    }
+
+    .submit-button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .submit-button:hover {
+        background-color: #218838;
     }
 </style>
 <?= $this->endSection() ?>
