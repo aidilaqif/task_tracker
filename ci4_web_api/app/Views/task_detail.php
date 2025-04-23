@@ -108,6 +108,34 @@
     </div>
 </div>
 
+<!-- Status Update Modal -->
+<div id="updateStatusModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Task Status</h3>
+            <span class="close-modal" id="closeStatusModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="updateStatusForm">
+                <input type="hidden" id="statusTaskId">
+                <div class="form-group">
+                    <label for="newTaskStatus">Status*</label>
+                    <select id="newTaskStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="request-extension">Request Extension</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelStatusButton" class="cancel-button">Cancel</button>
+                    <button type="submit" class="submit-button">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function (){
         // Get task ID from the URL query parameter
@@ -148,8 +176,24 @@
 
         // Update Status button event listener
         document.getElementById('updateStatusBtn').addEventListener('click', function(){
-            alert('Status update functionality soon be implemented');
+            openStatusModal();
         });
+
+        // Close status modal when clicking X
+        document.getElementById('closeStatusModal').addEventListener('click', function(){
+            document.getElementById('updateStatusModal').style.display = 'none';
+        });
+
+        // Close status modal when clicking Cancel button
+        document.getElementById('cancelStatusButton').addEventListener('click', function(){
+            document.getElementById('updateStatusModal').style.display = 'none';
+        });
+
+        // Handle status update form submission
+        document.getElementById('updateStatusForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            updateTaskStatus();
+        })
 
         // Update Progress button event listener
         document.getElementById('updateProgressBtn').addEventListener('click', function(){
@@ -158,9 +202,14 @@
 
         // Close modal when clicking outside
         window.addEventListener('click', function(event){
-            const modal = document.getElementById('editTaskModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
+            const editModal = document.getElementById('editTaskModal');
+            const statusModal = document.getElementById('updateStatusModal');
+            if (event.target === editModal) {
+                editModal.style.display = 'none';
+            }
+
+            if (event.target === statusModal) {
+                statusModal.style.display = 'none';
             }
         });
 
@@ -168,6 +217,7 @@
         document.addEventListener('keydown', function(event){
             if (event.key === "Escape") {
                 document.getElementById('editTaskModal').style.display = 'none';
+                document.getElementById('updateStatusModal').style.display = 'none';
             }
         });
     });
@@ -320,8 +370,65 @@
         });
     }
 
+    function openStatusModal() {
+        if (!window.currentTask) {
+            alert('Task data not available');
+            return;
+        }
+
+        const task = window.currentTask;
+
+        // Set task ID
+        document.getElementById('statusTaskId').value = task.id;
+
+        // Set current status
+        document.getElementById('newTaskStatus').value = task.status;
+
+        // Show the modal
+        document.getElementById('updateStatusModal').style.display = 'block';
+    }
+
     function formatDate(date) {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    function updateTaskStatus() {
+        const taskId = document.getElementById('statusTaskId').value;
+        const status = document.getElementById('newTaskStatus').value;
+
+        // Call the API to update task status
+        fetch(`/tasks/status/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status) {
+                // Success - update UI with the new task data
+                window.currentTask = data.data;
+                displayTaskDetails(data.data);
+
+                // Close modal
+                document.getElementById('updateStatusModal').style.display = 'none';
+
+                // Show success message
+                alert('Task status updated succesfully!');
+            } else {
+                alert(data.msg || 'Failed to update task status');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating task status:', error);
+            alert('Error updating task status: ' + error.message);
+        });
     }
 
     function displayError(message) {
