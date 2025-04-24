@@ -183,12 +183,12 @@
 
         // Close edit task modal when clicking X
         document.getElementById('closeEditTaskModal').addEventListener('click', function(){
-            document.getElementById('editTaskModal').style.display = 'none';
+            document.getElementById('editTaskModal').classList.remove('show');
         });
 
         // Close edit task modal when clicking Cancel button
         document.getElementById('cancelEditBtn').addEventListener('click', function(){
-            document.getElementById('editTaskModal').style.display = 'none';
+            document.getElementById('editTaskModal').classList.remove('show');
         });
 
         // Handle edit task form submission
@@ -204,12 +204,12 @@
 
         // Close status modal when clicking X
         document.getElementById('closeStatusModal').addEventListener('click', function(){
-            document.getElementById('updateStatusModal').style.display = 'none';
+            document.getElementById('updateStatusModal').classList.remove('show');
         });
 
         // Close status modal when clicking Cancel button
         document.getElementById('cancelStatusButton').addEventListener('click', function(){
-            document.getElementById('updateStatusModal').style.display = 'none';
+            document.getElementById('updateStatusModal').classList.remove('show');
         });
 
         // Handle status update form submission
@@ -225,12 +225,12 @@
 
         // Close progress modal when clicking X
         document.getElementById('closeProgressModal').addEventListener('click', function(){
-            document.getElementById('updateProgressModal').style.display = 'none';
+            document.getElementById('updateProgressModal').classList.remove('show');
         });
 
         // Close progress modal when clicking Cancel button
         document.getElementById('cancelProgressButton').addEventListener('click', function(){
-            document.getElementById('updateProgressModal').style.display = 'none';
+            document.getElementById('updateProgressModal').classList.remove('show');
         });
 
         // Handle progress update form submission
@@ -246,24 +246,24 @@
             const progressModal = document.getElementById('updateProgressModal');
 
             if (event.target === editModal) {
-                editModal.style.display = 'none';
+                editModal.classList.remove('show');
             }
 
             if (event.target === statusModal) {
-                statusModal.style.display = 'none';
+                statusModal.classList.remove('show');
             }
 
             if (event.target === progressModal) {
-                progressModal.style.display = 'none';
+                progressModal.classList.remove('show');
             }
         });
 
         // Add escape key support to close modal
         document.addEventListener('keydown', function(event){
             if (event.key === "Escape") {
-                document.getElementById('editTaskModal').style.display = 'none';
-                document.getElementById('updateStatusModal').style.display = 'none';
-                document.getElementById('updateProgressModal').style.display = 'none';
+                document.getElementById('editTaskModal').classList.remove('show');
+                document.getElementById('updateStatusModal').classList.remove('show');
+                document.getElementById('updateProgressModal').classList.remove('show');
             }
         });
     });
@@ -361,7 +361,7 @@
         }
 
         // Show the modal
-        document.getElementById('editTaskModal').style.display = 'block';
+        document.getElementById('editTaskModal').classList.add('show');
     }
 
     function updateTask() {
@@ -402,7 +402,7 @@
                 displayTaskDetails(data.data);
 
                 // Close the modal
-                document.getElementById('editTaskModal').style.display = 'none';
+                document.getElementById('editTaskModal').classList.remove('show');
 
                 // Show success message
                 alert('Task updated successfully!');
@@ -431,7 +431,7 @@
         document.getElementById('newTaskStatus').value = task.status;
 
         // Show the modal
-        document.getElementById('updateStatusModal').style.display = 'block';
+        document.getElementById('updateStatusModal').classList.add('show');
     }
 
     function formatDate(date) {
@@ -463,7 +463,7 @@
                 displayTaskDetails(data.data);
 
                 // Close modal
-                document.getElementById('updateStatusModal').style.display = 'none';
+                document.getElementById('updateStatusModal').classList.remove('show');
 
                 // Show success message
                 alert('Task status updated succesfully!');
@@ -491,7 +491,7 @@
         // Set current progress
         document.getElementById('updateTaskProgress').value = task.progress || 0;
         // Show the modal
-        document.getElementById('updateProgressModal').style.display = 'block';
+        document.getElementById('updateProgressModal').classList.add('show');
     }
 
     function updateTaskProgress(){
@@ -525,7 +525,7 @@
                 displayTaskDetails(data.data);
 
                 // Close modal
-                document.getElementById('updateProgressModal').style.display = 'none';
+                document.getElementById('updateProgressModal').classList.remove('show');
 
                 // Show success message
                 alert('Task progress updated successfully!');
@@ -726,139 +726,6 @@
         padding: 8px 16px;
         background-color: #f8f9fa;
         border-radius: 4px;
-    }
-
-    /* Modal styles */
-    .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        overflow: auto;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .modal-content {
-        background-color: #fff;
-        border-radius: 8px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        margin: 0 auto;
-        position: relative;
-        top: 0;
-        transform: translateY(0);
-        animation: modalAppear 0.3s ease-out;
-    }
-
-    @keyframes modalAppear {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .modal-header h3 {
-        margin: 0;
-        color: #212529;
-    }
-
-    .close-modal {
-        font-size: 24px;
-        font-weight: bold;
-        color: #adb5bd;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-
-    .close-modal:hover {
-        color: #495057;
-    }
-
-    .modal-body {
-        padding: 20px;
-    }
-
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: #495057;
-    }
-
-    .form-group input,
-    .form-group textarea,
-    .form-group select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus,
-    .form-group select:focus {
-        border-color: #80bdff;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-    }
-
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 30px;
-    }
-
-    .cancel-button {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .cancel-button:hover {
-        background-color: #5a6268;
-    }
-
-    .submit-button {
-        background-color: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .submit-button:hover {
-        background-color: #218838;
     }
 </style>
 <?= $this->endSection() ?>

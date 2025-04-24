@@ -31,7 +31,7 @@
 </div>
 
 <!-- Create Team Modal -->
-<div id="createTeamModal" class="modal" style="display:none;">
+<div id="createTeamModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Create New Team</h3>
@@ -57,7 +57,7 @@
 </div>
 
 <!-- Edit Team Modal -->
-<div id="editTeamModal" class="modal" style="display:none;">
+<div id="editTeamModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Edit Team</h3>
@@ -96,27 +96,27 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Add Team button event listener
     document.getElementById('addTeamsBtn').addEventListener('click', function() {
-        document.getElementById('createTeamModal').style.display = 'block';
+        document.getElementById('createTeamModal').classList.add('show');
     });
 
     // Close create team modal when clicking the X button
     document.getElementById('closeCreateModal').addEventListener('click', function() {
-        document.getElementById('createTeamModal').style.display = 'none';
+        document.getElementById('createTeamModal').classList.remove('show');
     });
 
     // Close edit modal when clicking the X button
     document.getElementById('closeEditModal').addEventListener('click', function() {
-        document.getElementById('editTeamModal').style.display = 'none';
+        document.getElementById('editTeamModal').classList.remove('show');
     });
 
     // Close create team modal when clicking the Cancel button
     document.getElementById('cancelTeamCreate').addEventListener('click', function() {
-        document.getElementById('createTeamModal').style.display = 'none';
+        document.getElementById('createTeamModal').classList.remove('show');
     });
     
     // Close edit modal modal when clicking the Cancel button
     document.getElementById('cancelTeamEdit').addEventListener('click', function(){
-        document.getElementById('editTeamModal').style.display = 'none';
+        document.getElementById('editTeamModal').classList.remove('show');
     });
     // Handle team creation form submission
     document.getElementById('createTeamForm').addEventListener('submit', function(e) {
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 fetchTeams();
                 // Reset form and close modal
                 document.getElementById('createTeamForm').reset();
-                document.getElementById('createTeamModal').style.display = 'none';
+                document.getElementById('createTeamModal').classList.remove('show');
                 alert('Team created successfully!');
             } else {
                 alert(data.msg || 'Failed to create team');
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 // Success - refresh team list
                 fetchTeams();
                 // Close modal
-                document.getElementById('editTeamModal').style.display = 'none';
+                document.getElementById('editTeamModal').classList.remove('show');
                 alert('Team updated successfully!');
             } else {
                 alert(data.msg || 'Failed to update team');
@@ -214,19 +214,19 @@ document.addEventListener('DOMContentLoaded', function(){
         const editModal = document.getElementById('editTeamModal');
 
         if (event.target === createModal) {
-            createModal.style.display = 'none';
+            createModal.classList.remove('show');
         }
 
         if (event.target === editModal) {
-            editModal.style.display = 'none';
+            editModal.classList.remove('show');
         }
     });
 
     // Add escape key support to close modal
     document.addEventListener('keydown', function(event){
         if (event.key === "Escape") {
-            document.getElementById('createTeamModal').style.display = 'none';
-            document.getElementById('editTeamModal').style.display = 'none';
+            document.getElementById('createTeamModal').classList.remove('show');
+            document.getElementById('editTeamModal').classList.remove('show');
         }
     });
 
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function(){
         document.getElementById('editTeamDescription').value = team.description || '';
 
         // Show the modal
-        document.getElementById('editTeamModal').style.display = 'block';
+        document.getElementById('editTeamModal').classList.add('show');
     }
 
     // Display teams in the table
@@ -396,136 +396,6 @@ document.addEventListener('DOMContentLoaded', function(){
         color: #dc3545;
         text-align: center;
         padding: 20px;
-    }
-
-    /* Modal styles */
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000; /* Ensure it's above other content */
-        transition: all 0.3s ease;
-    }
-
-    .modal-content {
-        background-color: #fff;
-        border-radius: 8px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        margin: 0 auto;
-        position: relative;
-        top: 0;
-        transform: translateY(0);
-        animation: modalAppear 0.3s ease-out;
-    }
-
-    @keyframes modalAppear {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .modal-header h3 {
-        margin: 0;
-        color: #212529;
-    }
-
-    .close-modal {
-        font-size: 24px;
-        font-weight: bold;
-        color: #adb5bd;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-
-    .close-modal:hover {
-        color: #495057;
-    }
-
-    .modal-body {
-        padding: 20px;
-    }
-
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: #495057;
-    }
-
-    .form-group input,
-    .form-group textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-        border-color: #80bdff;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-    }
-
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 30px;
-    }
-
-    .cancel-button {
-        background-color: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .cancel-button:hover {
-        background-color: #5a6268;
-    }
-
-    .submit-button {
-        background-color: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .submit-button:hover {
-        background-color: #218838;
     }
 </style>
 

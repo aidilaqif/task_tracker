@@ -48,7 +48,7 @@
 </div>
 
 <!-- Create Task Modal -->
-<div id="addTaskModal" class="modal" style="display:none;">
+<div id="addTaskModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Create New Task</h3>
@@ -94,7 +94,7 @@
 </div>
 
 <!-- Edit Task Modal -->
-<div id="editTaskModal" class="modal" style="display:none">
+<div id="editTaskModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Edit Task</h3>
@@ -168,27 +168,27 @@ document.addEventListener('DOMContentLoaded', function(){
     // Add Task button event listener
     document.getElementById('addTaskBtn').addEventListener('click', function(){
         fetchUsers();
-        document.getElementById('addTaskModal').style.display = 'block';
+        document.getElementById('addTaskModal').classList.add('show');
     });
 
     // Close add task modal when clicking X
     document.getElementById('closeAddTaskModal').addEventListener('click', function(){
-        document.getElementById('addTaskModal').style.display = 'none';
+        document.getElementById('addTaskModal').classList.remove('show');
     });
 
     // Clode edit task modal when clicking X
     document.getElementById('closeEditTaskModal').addEventListener('click', function(){
-        document.getElementById('editTaskModal').style.display = 'none';
+        document.getElementById('editTaskModal').classList.remove('show');
     });
 
     // Close create task modal when clicking Cancel button
     document.getElementById('cancelTaskCreate').addEventListener('click', function(){
-        document.getElementById('addTaskModal').style.display = 'none';
+        document.getElementById('addTaskModal').classList.remove('show');
     });
 
     // Close edit task modal when clicking Cancel button
     document.getElementById('cancelTaskEdit').addEventListener('click', function(){
-        document.getElementById('editTaskModal').style.display = 'none';
+        document.getElementById('editTaskModal').classList.remove('show');
     });
 
     // Handle task creation form submission
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 fetchTasks();
                 // Reset form and close modal
                 document.getElementById('createTaskForm').reset();
-                document.getElementById('addTaskModal').style.display = 'none';
+                document.getElementById('addTaskModal').classList.remove('show');
                 alert('Task created successfully!');
             } else {
                 alert(data.msg || 'Failed to create task');
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 // Success - refresh task list
                 fetchTasks();
                 // Close modal
-                document.getElementById('editTaskModal').style.display = 'none';
+                document.getElementById('editTaskModal').classList.remove('show');
                 alert('Task updated successfully!');
             } else {
                 alert(data.msg || 'Failed to update task');
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 document.getElementById('editTaskProgress').value = task.progress || 0;
 
                 // Show modal
-                document.getElementById('editTaskModal').style.display = 'block';
+                document.getElementById('editTaskModal').classList.add('show');
         })
         .catch(error => {
             console.error('Error preparing edit modal:', error);
@@ -457,19 +457,19 @@ document.addEventListener('DOMContentLoaded', function(){
         const editTaskModal = document.getElementById('editTaskModal');
 
         if (event.target === addTaskModal) {
-            addTaskModal.style.display = 'none';
+            addTaskModal.classList.remove('show');
         }
 
         if (event.target === editTaskModal) {
-            editTaskModal.style.display = 'none';
+            editTaskModal.classList.remove('show');
         }
     });
 
     // Add escape key support to close modal
     document.addEventListener('keydown', function(event){
         if (event.key === "Escape") {
-            document.getElementById('addTaskModal').style.display = 'none';
-            document.getElementById('editTaskModal').style.display = 'none';
+            document.getElementById('addTaskModal').classList.remove('show');
+            document.getElementById('editTaskModal').classList.remove('show');
         }
     });
 
@@ -694,139 +694,6 @@ document.addEventListener('DOMContentLoaded', function(){
         text-align: center;
         padding: 20px;
     }
-
-    /* Modal Style */
-    .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000; /* Ensure it's above other content */
-    transition: all 0.3s ease;
-}
-
-.modal-content {
-    background-color: #fff;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 500px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    margin: 0 auto;
-    position: relative;
-    top: 0;
-    transform: translateY(0);
-    animation: modalAppear 0.3s ease-out;
-}
-
-@keyframes modalAppear {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #212529;
-}
-
-.close-modal {
-    font-size: 24px;
-    font-weight: bold;
-    color: #adb5bd;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.close-modal:hover {
-    color: #495057;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #495057;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 16px;
-}
-
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-    border-color: #80bdff;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
-}
-
-.cancel-button {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.cancel-button:hover {
-    background-color: #5a6268;
-}
-
-.submit-button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.submit-button:hover {
-    background-color: #218838;
-}
-
 </style>
 
 <?= $this->endSection() ?>
