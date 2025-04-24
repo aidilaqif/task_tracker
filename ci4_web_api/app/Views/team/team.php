@@ -311,46 +311,4 @@ document.addEventListener('DOMContentLoaded', function(){
 
 });
 </script>
-
-<style>
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items:center;
-        margin-bottom: 20px;
-    }
-
-    .action-button.add {
-        background-color: #28a745;
-        padding: 8px 16px;
-        font-size: 14px;
-    }
-
-    .filters-container {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .search-container {
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .search-container input {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-    }
-
-    .error-message {
-        color: #dc3545;
-        text-align: center;
-        padding: 20px;
-    }
-</style>
-
 <?= $this->endSection() ?>

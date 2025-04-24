@@ -1,0 +1,8 @@
+/* Import shared styles */
+@import url('shared/layout.css');
+@import url('shared/buttons.css');
+@import url('shared/forms.css');
+@import url('shared/tables.css');
+@import url('shared/modals.css');
+@import url('shared/progress.css');
+@import url('shared/status-badges.css');
