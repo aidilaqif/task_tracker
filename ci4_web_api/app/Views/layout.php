@@ -6,6 +6,7 @@
     <title><?= $title ?? 'Task Tracker' ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
+
     <!-- Base CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/css/main.css') ?>">
 
