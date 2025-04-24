@@ -57,8 +57,8 @@
     </div>
 </div>
 
-<?= $this->include('modals/team_detail/add_member') ?>
-<?= $this->include('modals/team_detail/remove_confirmation') ?>
+<?= $this->include('team_detail/modals/add_member') ?>
+<?= $this->include('team_detail/modals/remove_confirmation') ?>
 
 
 

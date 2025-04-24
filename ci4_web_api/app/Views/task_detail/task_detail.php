@@ -60,9 +60,9 @@
     </div>
 </div>
 
-<?= $this->include('modals/task_detail/edit') ?>
-<?= $this->include('modals/task_detail/update_progress') ?>
-<?= $this->include('modals/task_detail/update_status') ?>
+<?= $this->include('task_detail/modals/edit') ?>
+<?= $this->include('task_detail/modals/update_progress') ?>
+<?= $this->include('task_detail/modals/update_status') ?>
 
 <script>
     document.addEventListener('DOMContentLoaded', function (){

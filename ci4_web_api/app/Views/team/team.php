@@ -30,8 +30,8 @@
     </table>
 </div>
 
-<?= $this->include('modals/team/create')?>
-<?= $this->include('modals/team/edit')?>
+<?= $this->include('team/modals/create')?>
+<?= $this->include('team/modals/edit')?>
 
 
 

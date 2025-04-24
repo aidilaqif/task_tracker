@@ -47,8 +47,8 @@
     </table>
 </div>
 
-<?= $this->include('modals/task/create') ?>
-<?= $this->include('modals/task/edit') ?>
+<?= $this->include('task/modals/create') ?>
+<?= $this->include('task/modals/edit') ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
