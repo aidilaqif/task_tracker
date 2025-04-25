@@ -52,5 +52,6 @@
 
 <script>
     <?= $this->include('task/js/task.js') ?>
+    <?= $this->include('task/js/task-modals.js') ?>
 </script>
 <?= $this->endSection() ?>

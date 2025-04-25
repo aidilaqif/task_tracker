@@ -34,6 +34,7 @@
 <?= $this->include('team/modals/edit')?>
 <script>
     <?= $this->include('team/js/team.js') ?>
+    <?= $this->include('team/js/team-modals.js') ?>
 </script>
 
 <?= $this->endSection() ?>

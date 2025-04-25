@@ -66,5 +66,6 @@
 
 <script>
     <?= $this->include('team_detail/js/team_detail.js')?>
+    <?= $this->include('team_detail/js/team_detail-modals.js')?>
 </script>
 <?= $this->endSection() ?>

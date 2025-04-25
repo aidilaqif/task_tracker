@@ -66,5 +66,6 @@
 
 <script>
     <?= $this->include('task_detail/js/task_detail.js') ?>
+    <?= $this->include('task_detail/js/task_detail-modals.js') ?>
 </script>
 <?= $this->endSection() ?>
