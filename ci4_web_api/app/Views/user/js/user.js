@@ -122,7 +122,7 @@ function displayUsers(users) {
             <td>${teamName}</td>
             <td>
                 <button class="edit" data-id="${user.id}">Edit</button>
-                <button class="remove" data-id="${user.id}">Delete</button>
+                <button class="remove" data-id="${user.id}" data-name="${user.name}">Delete</button>
             </td>
         `;
 
@@ -252,46 +252,17 @@ function addButtonEventListeners() {
     document.querySelectorAll('button.remove').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
-            confirmDeleteUser(userId);
+            const userName = this.getAttribute('data-name');
+            
+            if (typeof window.openDeleteConfirmationModal === 'function') {
+                window.openDeleteConfirmationModal(userId, userName);
+            } else {
+                // Fallback to browser confirm if modal function not found
+                if (confirm(`Are you sure you want to delete user "${userName}"?`)) {
+                    deleteUser(userId);
+                }
+            }
         });
-    });
-}
-
-// Confirm user deletion
-function confirmDeleteUser(userId) {
-    // Find user info for better UX
-    const user = window.userState.users.find(u => u.id == userId);
-    if (!user) {
-        console.error('User not found');
-        return;
-    }
-    
-    if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
-        deleteUser(userId);
-    }
-}
-
-// Delete user via API
-function deleteUser(userId) {
-    fetch(`/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status) {
-            alert('User deleted successfully!');
-            // Refresh the user list
-            fetchUsers();
-        } else {
-            alert(data.msg || 'Failed to delete user');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user: ' + error.message);
     });
 }
 

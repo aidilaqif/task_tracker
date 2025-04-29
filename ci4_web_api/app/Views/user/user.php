@@ -47,6 +47,7 @@
 
 <?= $this->include('user/modals/add') ?>
 <?= $this->include('user/modals/edit') ?>
+<?= $this->include('user/modals/delete_confirmation') ?>
 
 <script>
     <?= $this->include('user/js/user.js') ?>

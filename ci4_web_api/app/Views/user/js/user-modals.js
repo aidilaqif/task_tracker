@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', function(){
         closeEditUserModal();
     });
 
+    // Close delete confirmation modal when clicking the X button
+    document.getElementById('closeDeleteConfirmationModal').addEventListener('click', function(){
+        closeDeleteConfirmationModal();
+    });
+
     // Close add modal when clicking Cancel button
     document.getElementById('cancelAddUser').addEventListener('click', function(){
         closeAddUserModal();
@@ -22,6 +27,20 @@ document.addEventListener('DOMContentLoaded', function(){
     // Close edit modal when clicking Cancel button
     document.getElementById('cancelEditUser').addEventListener('click', function(){
         closeEditUserModal();
+    });
+
+    // Close delete confirmation modal when clicking Cancel button
+    document.getElementById('cancelDeleteConfirmation').addEventListener('click', function(){
+        closeDeleteConfirmationModal();
+    });
+
+    // Handle confirm delete button click
+    document.getElementById('confirmDeleteAction').addEventListener('click', function(){
+        const userId = this.getAttribute('data-user-id');
+        if (userId) {
+            deleteUser(userId);
+            closeDeleteConfirmationModal();
+        }
     });
 
     // Handle add user form submission
@@ -40,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function(){
     window.addEventListener('click', function(event){
         const addModal = document.getElementById('addUserModal');
         const editModal = document.getElementById('editUserModal');
+        const deleteModal = document.getElementById('deleteConfirmationModal');
         
         if (event.target === addModal) {
             closeAddUserModal();
@@ -48,6 +68,10 @@ document.addEventListener('DOMContentLoaded', function(){
         if (event.target === editModal) {
             closeEditUserModal();
         }
+
+        if (event.target === deleteModal) {
+            closeDeleteConfirmationModal();
+        }
     });
 
     // Add escape key support to close modals
@@ -55,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (event.key === "Escape") {
             closeAddUserModal();
             closeEditUserModal();
+            closeDeleteConfirmationModal();
         }
     });
 });
@@ -105,6 +130,39 @@ function openEditUserModal(userId) {
 // Close the Edit User modal
 function closeEditUserModal() {
     document.getElementById('editUserModal').classList.remove('show');
+}
+
+// Open delete confirmation modal
+function openDeleteConfirmationModal(userId, userName) {
+    const modalElement = document.getElementById('deleteConfirmationModal');
+    const messageElement = document.getElementById('deleteConfirmationMessage');
+    const confirmButton = document.getElementById('confirmDeleteAction');
+    
+    if (!modalElement || !messageElement || !confirmButton) {
+        console.error('Delete confirmation modal elements not found');
+        // Fallback to browser confirm
+        if (confirm(`Are you sure you want to delete user "${userName}"?`)) {
+            deleteUser(userId);
+        }
+        return;
+    }
+    
+    // Set the confirmation message with user name
+    messageElement.textContent = `Are you sure you want to delete user "${userName}"?`;
+    
+    // Store userId in the confirm button's data attribute
+    confirmButton.setAttribute('data-user-id', userId);
+    
+    // Show the modal
+    modalElement.classList.add('show');
+}
+
+// Close delete confirmation modal
+function closeDeleteConfirmationModal() {
+    const modalElement = document.getElementById('deleteConfirmationModal');
+    if (modalElement) {
+        modalElement.classList.remove('show');
+    }
 }
 
 // Populate the team dropdown
@@ -250,5 +308,31 @@ function updateUser() {
     });
 }
 
+// Delete user via API
+function deleteUser(userId) {
+    fetch(`/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status) {
+            alert('User deleted successfully!');
+            // Refresh the user list
+            fetchUsers();
+        } else {
+            alert(data.msg || 'Failed to delete user');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting user:', error);
+        alert('Error deleting user: ' + error.message);
+    });
+}
+
 // Expose functions to be called from user.js
 window.openEditUserModal = openEditUserModal;
+window.openDeleteConfirmationModal = openDeleteConfirmationModal;
+window.closeDeleteConfirmationModal = closeDeleteConfirmationModal;
