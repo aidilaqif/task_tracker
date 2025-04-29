@@ -18,9 +18,13 @@ $routes->get('/task_detail', 'WebUIController::taskDetail');
 $routes->get('/check', 'Home::connection');
 
 // users route
+$routes->get('users', 'UsersController::getAllUsers');
 $routes->post('users/add', 'UsersController::addUser');
 $routes->post('users/login', 'UsersController::login');
 $routes->post('users/logout', 'UsersController::logout');
+$routes->get('users/(:num)', 'UsersController::getUser/$1');  // Get a specific user by ID
+$routes->put('users/(:num)', 'UsersController::updateUser/$1');  // Update a user's details
+$routes->delete('users/(:num)', 'UsersController::deleteUser/$1');
 
 // tasks route
 $routes->get('tasks', 'TasksController::getAllTasks');

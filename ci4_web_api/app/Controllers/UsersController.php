@@ -13,6 +13,168 @@ class UsersController extends BaseController
     {
         $this->usersModel = new UsersModel();
     }
+    
+    // New method: Get all users with pagination and filtering
+    public function getAllUsers()
+    {
+        // Get query parameters for filtering
+        $search = $this->request->getGet('search');
+        $role = $this->request->getGet('role');
+        $teamId = $this->request->getGet('team_id');
+        
+        // Get pagination parameters
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 20);
+        
+        // Start building the query
+        $builder = $this->usersModel->builder();
+        
+        // Apply search filter if provided
+        if ($search) {
+            $builder->groupStart()
+                ->like('name', $search)
+                ->orLike('email', $search)
+                ->groupEnd();
+        }
+        
+        // Apply role filter if provided
+        if ($role) {
+            $builder->where('role', $role);
+        }
+        
+        // Apply team filter if provided
+        if ($teamId) {
+            $builder->where('team_id', $teamId);
+        }
+        
+        // Get total count for pagination
+        $total = $builder->countAllResults(false);
+        
+        // Get paginated results
+        $users = $builder->limit($limit, ($page - 1) * $limit)
+            ->get()
+            ->getResultArray();
+        
+        // Remove passwords from user data
+        foreach ($users as &$user) {
+            unset($user['password']);
+        }
+        
+        // Prepare pagination info
+        $pagination = [
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $total,
+            'total_pages' => ceil($total / $limit)
+        ];
+        
+        return $this->respondWithJson(
+            true, 
+            "Users retrieved successfully", 
+            [
+                'users' => $users,
+                'pagination' => $pagination
+            ]
+        );
+    }
+    
+    // New method: Get a specific user by ID
+    public function getUser($id)
+    {
+        $user = $this->usersModel->find($id);
+        
+        if (!$user) {
+            return $this->respondWithJson(false, "User not found", null, 404);
+        }
+        
+        // Remove sensitive information
+        unset($user['password']);
+        
+        return $this->respondWithJson(true, "User retrieved successfully", $user);
+    }
+    
+    // New method: Update a user's details
+    public function updateUser($id)
+    {
+        $input = $this->request->getJSON();
+        
+        // Check if user exists
+        $user = $this->usersModel->find($id);
+        if (!$user) {
+            return $this->respondWithJson(false, "User not found", null, 404);
+        }
+        
+        // Prepare data for update
+        $data = [];
+        
+        if (isset($input->name)) {
+            $data['name'] = $input->name;
+        }
+        
+        if (isset($input->email)) {
+            // Check if email is already in use by another user
+            $existingUser = $this->usersModel->where('email', $input->email)->first();
+            if ($existingUser && $existingUser['id'] != $id) {
+                return $this->respondWithJson(false, "Email is already in use", null, 400);
+            }
+            $data['email'] = $input->email;
+        }
+        
+        if (isset($input->role)) {
+            $data['role'] = $input->role;
+        }
+        
+        if (isset($input->team_id)) {
+            $data['team_id'] = $input->team_id;
+        }
+        
+        // Update password if provided
+        if (isset($input->password) && !empty($input->password)) {
+            $data['password'] = password_hash($input->password, PASSWORD_DEFAULT);
+        }
+        
+        // If no data to update
+        if (empty($data)) {
+            return $this->respondWithJson(false, "No data provided for update", null, 400);
+        }
+        
+        try {
+            if ($this->usersModel->update($id, $data)) {
+                // Get updated user
+                $updatedUser = $this->usersModel->find($id);
+                unset($updatedUser['password']);
+                
+                return $this->respondWithJson(true, "User updated successfully", $updatedUser);
+            } else {
+                $errors = $this->usersModel->errors();
+                return $this->respondWithJson(false, "Failed to update user", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+    
+    // New method: Delete a user
+    public function deleteUser($id)
+    {
+        // Check if user exists
+        $user = $this->usersModel->find($id);
+        if (!$user) {
+            return $this->respondWithJson(false, "User not found", null, 404);
+        }
+        
+        try {
+            if ($this->usersModel->delete($id)) {
+                return $this->respondWithJson(true, "User deleted successfully");
+            } else {
+                $errors = $this->usersModel->errors();
+                return $this->respondWithJson(false, "Failed to delete user", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+    
     // User register function
     public function addUser()
     {
