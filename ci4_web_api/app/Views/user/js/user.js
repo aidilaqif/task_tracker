@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function(){
     // Store current page state
     window.userState = {
-        user: [],
+        users: [],
         currentPage: 1,
         limit: 10,
         totalPages: 1,
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // Fetch users from the API with current filters and pagination
 function fetchUsers(){
     // Show loading indicator
-    document.getElementById('usersTableBody').innerHTMl = '<tr><td colspan="6">Loading user data...</td></tr>';
+    document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="6">Loading user data...</td></tr>';
 
     // Build query parameters
     const params = new URLSearchParams();
@@ -104,7 +104,7 @@ function displayUsers(users) {
     users.forEach(user => {
         const row = document.createElement('tr');
 
-        // Get team name (if use is in a team)
+        // Get team name (if user is in a team)
         let teamName = 'Not Assigned';
 
         if (user.team_id && window.teams) {
@@ -240,8 +240,11 @@ function addButtonEventListeners() {
     document.querySelectorAll('button.edit').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
-            // This will be implemented in the next step
-            console.log('Edit user:', userId);
+            if (typeof window.openEditUserModal === 'function') {
+                window.openEditUserModal(userId);
+            } else {
+                console.error('Edit user modal function not found');
+            }
         });
     });
     
@@ -249,9 +252,46 @@ function addButtonEventListeners() {
     document.querySelectorAll('button.remove').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
-            // This will be implemented in the next step
-            console.log('Delete user:', userId);
+            confirmDeleteUser(userId);
         });
+    });
+}
+
+// Confirm user deletion
+function confirmDeleteUser(userId) {
+    // Find user info for better UX
+    const user = window.userState.users.find(u => u.id == userId);
+    if (!user) {
+        console.error('User not found');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
+        deleteUser(userId);
+    }
+}
+
+// Delete user via API
+function deleteUser(userId) {
+    fetch(`/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status) {
+            alert('User deleted successfully!');
+            // Refresh the user list
+            fetchUsers();
+        } else {
+            alert(data.msg || 'Failed to delete user');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting user:', error);
+        alert('Error deleting user: ' + error.message);
     });
 }
 
@@ -260,3 +300,6 @@ function displayError(message) {
     const tableBody = document.getElementById('usersTableBody');
     tableBody.innerHTML = `<tr><td colspan="6" class="error-message">${message}</td></tr>`;
 }
+
+// Expose fetchUsers function to be called from user-modals.js
+window.fetchUsers = fetchUsers;

@@ -46,6 +46,7 @@
 </div>
 
 <?= $this->include('user/modals/add') ?>
+<?= $this->include('user/modals/edit') ?>
 
 <script>
     <?= $this->include('user/js/user.js') ?>
