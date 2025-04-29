@@ -1,6 +1,12 @@
 <div class="sidebar">
     <div class="sidebar-header">
         <h3>Task Tracker</h3>
+        <?php if(session()->get('isLoggedIn')): ?>
+        <div class="user-info">
+            <span><?= session()->get('name') ?></span>
+            <small>(<?= session()->get('role') ?>)</small>
+        </div>
+        <?php endif; ?>
     </div>
     <ul class="sidebar-menu">
         <li class="<?= ($active_menu ?? '') == 'dashboard' ? 'active' : '' ?>">
@@ -23,6 +29,12 @@
                 <span>Users</span>
             </a>
         </li>
+        <?php if(session()->get('isLoggedIn')): ?>
+        <li class="logout-item">
+            <a href="<?= site_url('/logout') ?>">
+                <span>Logout</span>
+            </a>
+        </li>
+        <?php endif; ?>
     </ul>
 </div>
-

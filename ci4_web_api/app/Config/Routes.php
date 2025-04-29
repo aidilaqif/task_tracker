@@ -5,18 +5,21 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-// Web View - Default Route for Sidebar
-$routes->get('/', 'WebUIController::dashboard');
+// Authentication Routes
+$routes->get('/login', 'AuthController::login');
+$routes->post('/auth/set-session', 'AuthController::setSession');
+$routes->get('/logout', 'AuthController::logout');
 
-// Web View - Routes for Sidebar
-$routes->get('/dashboard', 'WebUIController::dashboard');
-$routes->get('/team', 'WebUIController::team');
-$routes->get('/task', 'WebUIController::task');
-$routes->get('/team_detail', 'WebUIController::teamDetail');
-$routes->get('/task_detail', 'WebUIController::taskDetail');
-$routes->get('/user', 'WebUIController::user');
+// Web View - Default Route for Sidebar (protected by auth filter)
+$routes->get('/', 'WebUIController::dashboard', ['filter' => 'auth']);
 
-$routes->get('/check', 'Home::connection');
+// Web View - Routes for Sidebar (protected by auth filter)
+$routes->get('/dashboard', 'WebUIController::dashboard', ['filter' => 'auth']);
+$routes->get('/team', 'WebUIController::team', ['filter' => 'auth']);
+$routes->get('/task', 'WebUIController::task', ['filter' => 'auth']);
+$routes->get('/team_detail', 'WebUIController::teamDetail', ['filter' => 'auth']);
+$routes->get('/task_detail', 'WebUIController::taskDetail', ['filter' => 'auth']);
+$routes->get('/user', 'WebUIController::user', ['filter' => 'auth']);
 
 // users route
 $routes->get('users', 'UsersController::getAllUsers');

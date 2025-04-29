@@ -19,6 +19,25 @@
             <link rel="stylesheet" href="<?= base_url('assets/css/components/' . $css . '.css') ?>">
         <?php endforeach; ?>
     <?php endif; ?>
+    
+    <script>
+        // Check for authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to AJAX requests to handle session expiration
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options) {
+                return originalFetch(url, options).then(response => {
+                    if (response.status === 401) {
+                        // Session expired, redirect to login
+                        alert('Your session has expired. Please login again.');
+                        window.location.href = '/login';
+                        return Promise.reject(new Error('Session expired'));
+                    }
+                    return response;
+                });
+            };
+        });
+    </script>
 </head>
 <body>
     <!-- Include Sidebar -->
@@ -30,6 +49,16 @@
         <header class="content-header">
             <div class="container">
                 <h1><?= $header ?? $title ?? 'Task Tracker' ?></h1>
+                <?php if(session()->has('error')): ?>
+                    <div class="alert alert-danger">
+                        <?= session()->getFlashdata('error') ?>
+                    </div>
+                <?php endif; ?>
+                <?php if(session()->has('success')): ?>
+                    <div class="alert alert-success">
+                        <?= session()->getFlashdata('success') ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </header>
 
