@@ -4,146 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'Task Tracker' ?></title>
-    <style>
-         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.5;
-            color: #212529;
-            background-color: #f8f9fa;
-        }
-
-        .container {
-            padding: 0 15px;
-        }
-
-        .content-header {
-            padding: 20px 0;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        /* Table styles */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1.5rem;
-            background-color: #fff;
-            border: 1px solid #dee2e6;
-        }
-
-        table th,
-        table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-
-        table tr:nth-child(even) {
-            background-color: rgba(248, 249, 250, 0.3);
-        }
-
-        table tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        /* Button style */
-        button {
-            /* background-color: #007bff; */
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 5px;
-        }
-
-        button:hover {
-            /* background-color: #0069d9; */
-        }
-
-        button.view {
-            background-color: #107ed9;
-        }
-
-        button.view:hover {
-            background-color: #155387;
-        }
-
-        button.edit {
-            background-color: #bfa900;
-        }
-
-        button.edit:hover {
-            background-color: #826d01;
-        }
-
-        button.remove {
-            background-color: #f03c3c;
-        }
-
-        button.remove:hover {
-            background-color: #942e2e;
-        }
-
-        /* Status and priority styles */
-        .status-pending {
-            color: #856404;
-            background-color: #fff3cd;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-
-        .status-in-progress {
-            color: #0c5460;
-            background-color: #d1ecf1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-        }
-
-        .status-completed {
-            color: #155724;
-            background-color: #d4edda;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-        }
-
-        .status-request-extension {
-            color: #721c24;
-            background-color: #f8d7da;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-        }
-
-        .priority-high {
-            color: #721c24;
-            font-weight: 600;
-        }
-
-        .priority-medium {
-            color: #856404;
-        }
-
-        .priority-low {
-            color: #155724;
-        }
-    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="<?= base_url('assets/css/modals.css') ?>">
+
+
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="<?= base_url('assets/css/main.css') ?>">
+
+    <!-- Ensure sidebar CSS is always loaded -->
+    <link rel="stylesheet" href="<?= base_url('assets/css/components/sidebar.css') ?>">
+
+    <!-- Component-specific CSS -->
+    <?php if(isset($css_files) && is_array($css_files)): ?>
+        <?php foreach($css_files as $css): ?>
+            <link rel="stylesheet" href="<?= base_url('assets/css/components/' . $css . '.css') ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
+    
+    <script>
+        // Check for authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to AJAX requests to handle session expiration
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options) {
+                return originalFetch(url, options).then(response => {
+                    if (response.status === 401) {
+                        // Session expired, redirect to login
+                        alert('Your session has expired. Please login again.');
+                        window.location.href = '/login';
+                        return Promise.reject(new Error('Session expired'));
+                    }
+                    return response;
+                });
+            };
+        });
+    </script>
 </head>
 <body>
     <!-- Include Sidebar -->
@@ -155,6 +49,16 @@
         <header class="content-header">
             <div class="container">
                 <h1><?= $header ?? $title ?? 'Task Tracker' ?></h1>
+                <?php if(session()->has('error')): ?>
+                    <div class="alert alert-danger">
+                        <?= session()->getFlashdata('error') ?>
+                    </div>
+                <?php endif; ?>
+                <?php if(session()->has('success')): ?>
+                    <div class="alert alert-success">
+                        <?= session()->getFlashdata('success') ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </header>
 

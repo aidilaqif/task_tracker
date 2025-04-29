@@ -5,22 +5,30 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-// Web View - Default Route for Sidebar
-$routes->get('/', 'WebUIController::dashboard');
+// Authentication Routes
+$routes->get('/login', 'AuthController::login');
+$routes->post('/auth/set-session', 'AuthController::setSession');
+$routes->get('/logout', 'AuthController::logout');
 
-// Web View - Routes for Sidebar
-$routes->get('/dashboard', 'WebUIController::dashboard');
-$routes->get('/team', 'WebUIController::team');
-$routes->get('/task', 'WebUIController::task');
-$routes->get('/team_detail', 'WebUIController::teamDetail');
-$routes->get('/task_detail', 'WebUIController::taskDetail');
+// Web View - Default Route for Sidebar (protected by auth filter)
+$routes->get('/', 'WebUIController::dashboard', ['filter' => 'auth']);
 
-$routes->get('/check', 'Home::connection');
+// Web View - Routes for Sidebar (protected by auth filter)
+$routes->get('/dashboard', 'WebUIController::dashboard', ['filter' => 'auth']);
+$routes->get('/team', 'WebUIController::team', ['filter' => 'auth']);
+$routes->get('/task', 'WebUIController::task', ['filter' => 'auth']);
+$routes->get('/team_detail', 'WebUIController::teamDetail', ['filter' => 'auth']);
+$routes->get('/task_detail', 'WebUIController::taskDetail', ['filter' => 'auth']);
+$routes->get('/user', 'WebUIController::user', ['filter' => 'auth']);
 
 // users route
+$routes->get('users', 'UsersController::getAllUsers');
 $routes->post('users/add', 'UsersController::addUser');
 $routes->post('users/login', 'UsersController::login');
 $routes->post('users/logout', 'UsersController::logout');
+$routes->get('users/(:num)', 'UsersController::getUser/$1');  // Get a specific user by ID
+$routes->put('users/(:num)', 'UsersController::updateUser/$1');  // Update a user's details
+$routes->delete('users/(:num)', 'UsersController::deleteUser/$1');
 
 // tasks route
 $routes->get('tasks', 'TasksController::getAllTasks');
@@ -47,6 +55,7 @@ $routes->post('teams', 'TeamController::createTeam');
 $routes->post('teams/members','TeamController::addUserToTeam');
 $routes->delete('teams/members/(:num)', 'TeamController::removeUserFromTeam/$1');
 $routes->get('teams/(:num)/metrics','TeamController::getTeamPerformanceMetrics/$1');
+$routes->put('teams/(:num)', 'TeamController::updateTeam/$1');
 
 // users-team related route
 $routes->get('users/team/(:num)', 'UsersController::getUsersByTeam/$1');

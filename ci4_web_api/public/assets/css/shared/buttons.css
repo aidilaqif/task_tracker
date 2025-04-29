@@ -1,0 +1,66 @@
+button {
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 5px;
+}
+
+button.view {
+    background-color: #107ed9;
+}
+
+button.view:hover {
+    background-color: #155387;
+}
+
+button.edit {
+    background-color: #bfa900;
+}
+
+button.edit:hover {
+    background-color: #826d01;
+}
+
+button.remove {
+    background-color: #f03c3c;
+}
+
+button.remove:hover {
+    background-color: #942e2e;
+}
+
+.action-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    color: white;
+}
+
+.action-button.add {
+    background-color: #28a745;
+}
+
+.action-button.edit {
+    background-color: #6c757d;
+}
+
+.action-button.status {
+    background-color: #17a2b8;
+}
+
+.action-button.progress {
+    background-color: #28a745;
+}
+
+.action-button.refresh {
+    background-color: #17a2b8;
+}
+
+.action-button:hover {
+    opacity: 0.9;
+}

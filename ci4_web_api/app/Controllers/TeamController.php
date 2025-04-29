@@ -246,6 +246,41 @@ class TeamController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+
+    // Update team name and description
+    public function updateTeam($id)
+    {
+        $input = $this->request->getJSON();
+
+        // Check if team exists first
+        $team = $this->teamModel->find($id);
+        if(!$team) {
+            return $this->respondWithJson(false, "Team not found", null, 404);
+        }
+
+        // Validate required fields
+        if(!isset($input->name)) {
+            return $this->respondWithJson(false, "Team name is required", null, 400);
+        }
+
+        // Prepare data for update
+        $data = [
+            'name' => $input->name,
+            'description' => $input->description ?? $team['description'] // Keep existing description if not provided
+        ];
+
+        try {
+            if ($this->teamModel->update($id, $data)) {
+                $updatedTeam = $this->teamModel->find($id);
+                return $this->respondWithJson(true, "Team updated successfully", $updatedTeam);
+            } else {
+                $errors = $this->teamModel->errors();
+                return $this->respondWithJson(false, "Failed to update team", $errors, 400);
+            }
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
     // Standard JSON response method
     private function respondWithJson($status, $msg, $data = null, $statusCode = 200)
     {
