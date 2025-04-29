@@ -44,4 +44,11 @@ class WebUIController extends BaseController
         $data['css_files'] = ['task_detail'];
         return view('task_detail/task_detail', $data);
     }
+    // User Management View
+    public function user()
+    {
+        $data['active_menu'] = 'user';
+        $data['css_files'] = ['user'];
+        return view('user/user', $data);
+    }
 }

@@ -14,6 +14,7 @@ $routes->get('/team', 'WebUIController::team');
 $routes->get('/task', 'WebUIController::task');
 $routes->get('/team_detail', 'WebUIController::teamDetail');
 $routes->get('/task_detail', 'WebUIController::taskDetail');
+$routes->get('/user', 'WebUIController::user');
 
 $routes->get('/check', 'Home::connection');
 

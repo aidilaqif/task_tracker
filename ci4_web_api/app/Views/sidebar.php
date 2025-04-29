@@ -18,6 +18,11 @@
                 <span>Task</span>
             </a>
         </li>
+        <li class="<?= ($active_menu ?? '') == 'user' ? 'active' : '' ?>">
+            <a href="<?= site_url('/user') ?>">
+                <span>Users</span>
+            </a>
+        </li>
     </ul>
 </div>
 
