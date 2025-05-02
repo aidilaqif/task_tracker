@@ -8,7 +8,7 @@ class ApiRoutes {
   static String logout = '$baseUrl/users/logout';
 
   // Connection check
-  static String connection = '$baseUrl/check';
+  static String connection = baseUrl;
 
   // Task routes for employees
   static String viewTask(int taskId) => '$baseUrl/tasks/view/$taskId';
