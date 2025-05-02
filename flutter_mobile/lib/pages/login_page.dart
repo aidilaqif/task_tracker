@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/pages/home_page.dart';
-import 'package:frontend/pages/register_page.dart';
-import 'package:frontend/services/api_services.dart';
 import 'package:frontend/widgets/custom_form_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -12,7 +9,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final ApiService apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String _connectionStatus = '';
@@ -21,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    checkConnection();
+    // checkConnection();
   }
 
   void _submit() async {
@@ -36,57 +32,6 @@ class _LoginPageState extends State<LoginPage> {
       isLoading = true;
       _connectionStatus = '';
     });
-
-    try {
-      final response = await apiService.loginUser({
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      });
-
-      setState(() {
-        _connectionStatus = response['msg'] ?? 'Unknown response';
-        isLoading = false;
-      });
-
-      if (response['status'] == true) {
-        // print('Login successful: ${response['data']}');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => MyHomePage(
-                  title: 'Task Tracker',
-                  userData: response['data'],
-                ),
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _connectionStatus = 'Error: $e';
-        isLoading = false;
-      });
-    }
-  }
-
-  void checkConnection() async {
-    setState(() {
-      isLoading = true;
-      _connectionStatus = 'Checking connection...';
-    });
-
-    try {
-      final response = await apiService.checkConnection();
-      setState(() {
-        isLoading = false;
-        _connectionStatus = 'Checking status: $response';
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        _connectionStatus = 'Connection error: ${e.toString()}';
-      });
-    }
   }
 
   @override
@@ -138,15 +83,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: Text('Login', style: TextStyle(fontSize: 16)),
                   ),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RegisterPage()),
-                  );
-                },
-                child: Text('Don\'t have an account? Register'),
-              ),
             ],
           ),
         ),
@@ -154,28 +90,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-// class FormField extends StatelessWidget {
-//   const FormField({
-//     super.key,
-//     required this.isHidden,
-//     required this.labelText,
-//     required this.controller,
-//   });
-
-//   final bool isHidden;
-//   final String labelText;
-//   final TextEditingController controller;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return TextField(
-//       controller: controller,
-//       obscureText: isHidden,
-//       decoration: InputDecoration(
-//         border: OutlineInputBorder(),
-//         labelText: labelText,
-//       ),
-//     );
-//   }
-// }
