@@ -1,0 +1,148 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_mobile_app/app_theme.dart';
+import 'package:flutter_mobile_app/pages/tasks_page.dart';
+import 'package:flutter_mobile_app/pages/activity_page.dart';
+import 'package:flutter_mobile_app/pages/team_page.dart';
+import 'package:flutter_mobile_app/pages/profile_page.dart';
+
+class CustomNavigationBar extends StatefulWidget {
+  final Map<String, dynamic> userData;
+  
+  const CustomNavigationBar({super.key, required this.userData});
+
+  @override
+  State<CustomNavigationBar> createState() => _CustomNavigationBarState();
+}
+
+class _CustomNavigationBarState extends State<CustomNavigationBar> {
+  int _selectedIndex = 0;
+  late List<Widget> _pages;
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize pages with user data
+    _pages = [
+      TasksPage(userData: widget.userData),
+      ActivityPage(userData: widget.userData),
+      TeamPage(userData: widget.userData),
+      ProfilePage(userData: widget.userData),
+    ];
+  }
+  
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  // Get page-specific app bar titles
+  String _getAppBarTitle() {
+    switch (_selectedIndex) {
+      case 0: return 'My Tasks';
+      case 1: return 'Activity';
+      case 2: return 'My Team';
+      case 3: return 'Profile';
+      default: return 'Task Tracker';
+    }
+  }
+
+  // Get page-specific app bar actions
+  List<Widget> _getAppBarActions() {
+    switch (_selectedIndex) {
+      case 0: // Tasks page
+        return [
+          // Task filtering/sorting
+          IconButton(
+            icon: Icon(Icons.filter_list, color: AppTheme.textOnPrimaryColor),
+            onPressed: () {
+              // Show task filter options
+            },
+          ),
+          // Task refresh
+          IconButton(
+            icon: Icon(Icons.refresh, color: AppTheme.textOnPrimaryColor),
+            onPressed: () {
+              // Refresh tasks list
+            },
+          ),
+        ];
+      
+      case 1: // Activity page
+        return [
+          // Mark all as read
+          IconButton(
+            icon: Icon(Icons.done_all, color: AppTheme.textOnPrimaryColor),
+            onPressed: () {
+              // Mark all notifications as read
+            },
+          ),
+        ];
+      
+      case 2: // Team page
+        return []; // No special actions needed
+      
+      case 3: // Profile page
+        return [
+          // Logout
+          IconButton(
+            icon: Icon(Icons.logout, color: AppTheme.textOnPrimaryColor),
+            onPressed: () {
+              // Show logout confirmation
+            },
+          ),
+        ];
+      
+      default:
+        return [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _getAppBarTitle(),
+          style: TextStyle(
+            color: AppTheme.textOnPrimaryColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: AppTheme.primaryColor,
+        elevation: AppTheme.elevationSm,
+        actions: _getAppBarActions(),
+      ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppTheme.primaryColor,
+        unselectedItemColor: AppTheme.textSecondaryColor,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task_alt),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            label: 'Activity',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            label: 'Team',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}

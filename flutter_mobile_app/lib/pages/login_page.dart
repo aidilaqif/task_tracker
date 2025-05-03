@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobile_app/pages/home_page.dart';
-// import 'package:flutter_mobile_app/widgets/custom_form_field.dart';
+import 'package:flutter_mobile_app/custom_navigation_bar.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
 
@@ -31,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final ApiService apiService = ApiService();
-      final result = await apiService.checkConnection();
+      await apiService.checkConnection();
 
       setState(() {
         _isLoading = false;
@@ -75,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => HomePage(userData: response['data']),
+              builder: (context) => CustomNavigationBar(userData: response['data']),
             ),
           );
         } else {
