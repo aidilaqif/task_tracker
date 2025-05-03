@@ -6,11 +6,10 @@ class ApiService {
   // Connection check
   Future<dynamic> checkConnection() async {
     try {
-      final response = await http.get(
+      await http.get(
         Uri.parse(ApiRoutes.baseUrl), // Just check if base URL is reachable
         headers: {'Content-Type': 'application/json'},
       );
-
       return('successful');
     } catch (e) {
       throw Exception('Failed to connect to server: $e');

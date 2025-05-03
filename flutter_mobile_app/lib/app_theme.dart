@@ -20,6 +20,12 @@ class AppTheme {
   static const Color textOnPrimaryColor = Colors.white; // Text on primary color
   static const Color textOnSecondaryColor = Colors.black; // Text on secondary color
 
+  // Icon Colors
+  static const Color iconPrimaryColor = Color(0xFF212529); // Dark text
+  static const Color iconSecondaryColor = Color(0xFF6C757D); // Lighter text
+  static const Color iconOnPrimaryColor = Colors.white; // Text on primary color
+  static const Color iconOnSecondaryColor = Colors.black; // Text on secondary color
+
   // Status Colors (consistent with the web app)
   static const Color pendingColor = Color(0xFFFFC107); // Amber
   static const Color inProgressColor = Color(0xFF17A2B8); // Cyan
