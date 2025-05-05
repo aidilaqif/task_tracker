@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
+import 'package:flutter_mobile_app/pages/login_page.dart';
 import 'package:flutter_mobile_app/pages/tasks_page.dart';
 import 'package:flutter_mobile_app/pages/activity_page.dart';
 import 'package:flutter_mobile_app/pages/team_page.dart';
 import 'package:flutter_mobile_app/pages/profile_page.dart';
+import 'package:flutter_mobile_app/services/api_services.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -15,6 +17,7 @@ class CustomNavigationBar extends StatefulWidget {
 }
 
 class _CustomNavigationBarState extends State<CustomNavigationBar> {
+  final ApiService _apiService = ApiService();
   int _selectedIndex = 0;
   late List<Widget> _pages;
   
@@ -88,14 +91,75 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
           // Logout
           IconButton(
             icon: Icon(Icons.logout, color: AppTheme.textOnPrimaryColor),
-            onPressed: () {
-              // Show logout confirmation
-            },
+            onPressed: _logout,
           ),
         ];
       
       default:
         return [];
+    }
+  }
+
+  Future<void> _logout() async {
+    // Show confirmation dialog
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logout', style: AppTheme.titleStyle),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: AppTheme.bodyStyle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondaryColor),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            child: Text(
+              'Logout',
+              style: TextStyle(color: Colors.white)
+            ),
+          )
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      try {
+        // Call logout API
+        await _apiService.logoutUser();
+
+        // Regardless of response navigate to login page
+        if (!mounted) return;
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder:(context) => const LoginPage()),
+          (route) => false,
+        );
+      } catch (e) {
+        // Even if there's an error, still logout locally
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error duing logout: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      }
     }
   }
 

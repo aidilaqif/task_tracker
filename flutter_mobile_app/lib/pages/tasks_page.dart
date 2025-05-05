@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
-import 'package:flutter_mobile_app/pages/notification_page.dart';
 
 class TasksPage extends StatelessWidget {
   final Map<String, dynamic> userData;
