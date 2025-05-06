@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/pages/login_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
-import 'package:intl/intl.dart';
 
 class ProfilePage extends StatefulWidget {
   final Map<String, dynamic> userData;

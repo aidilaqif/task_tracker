@@ -6,6 +6,7 @@ class Task {
   final String? dueDate;
   final String status;
   final String priority;
+  final String progress;
   final String createdAt;
   final String updatedAt;
 
@@ -17,6 +18,7 @@ class Task {
     this.dueDate,
     required this.status,
     required this.priority,
+    required this.progress,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +35,7 @@ class Task {
       dueDate: json['due_date'],
       status: json['status'] ?? 'pending',
       priority: json['priority'] ?? 'medium',
+      progress: json['progress'] ?? 0,
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
     );

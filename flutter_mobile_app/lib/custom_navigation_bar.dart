@@ -20,14 +20,15 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
   final ApiService _apiService = ApiService();
   int _selectedIndex = 0;
   late List<Widget> _pages;
+   final GlobalKey<TasksPageState> _tasksPageKey = GlobalKey<TasksPageState>();
   
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize pages with user data
     _pages = [
-      TasksPage(userData: widget.userData),
+      TasksPage(key: _tasksPageKey, userData: widget.userData),
       ActivityPage(userData: widget.userData),
       TeamPage(userData: widget.userData),
       ProfilePage(userData: widget.userData),
@@ -60,14 +61,14 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
           IconButton(
             icon: Icon(Icons.filter_list, color: AppTheme.textOnPrimaryColor),
             onPressed: () {
-              // Show task filter options
+              _tasksPageKey.currentState?.showFilterOptions();
             },
           ),
           // Task refresh
           IconButton(
             icon: Icon(Icons.refresh, color: AppTheme.textOnPrimaryColor),
             onPressed: () {
-              // Refresh tasks list
+              _tasksPageKey.currentState?.loadTasks();
             },
           ),
         ];
