@@ -6,17 +6,17 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 
 // Configuration from environment variables
-const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const POLL_INTERVAL = parseInt(process.env.NOTIFICATION_POLL_INTERVAL || '5000', 10);
+const PORT = process.env.PORT;
+const NODE_ENV = process.env.NODE_ENV;
+const POLL_INTERVAL = parseInt(process.env.NOTIFICATION_POLL_INTERVAL, 10);
 
 // Database configuration
 const dbConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'task_tracker_db',
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
