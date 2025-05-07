@@ -8,6 +8,11 @@ class ActivityPage extends StatefulWidget {
   final Map<String, dynamic> userData;
   const ActivityPage({super.key, required this.userData});
 
+  void refreshNotifications() {
+    final state = _ActivityPageState.of(this);
+    state?.loadNotifications();
+  }
+
   @override
   State<ActivityPage> createState() => _ActivityPageState();
 }
@@ -18,10 +23,15 @@ class _ActivityPageState extends State<ActivityPage> {
   final List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  static _ActivityPageState? of(ActivityPage widget) {
+    return _ActivityPageStates[widget];
+  }
+  static final Map<ActivityPage, _ActivityPageState> _ActivityPageStates = {};
 
   @override
   void initState() {
     super.initState();
+    _ActivityPageStates[widget] = this;
     _loadNotifications();
     
     // Listen for new notifications
@@ -88,20 +98,150 @@ class _ActivityPageState extends State<ActivityPage> {
 
   Future<void> _markAsRead(int notificationId) async {
     try {
-      final response = await _apiService.markNotificationAsRead(notificationId);
+      // Show loading indicator
+      setState(() {
+        // Find notification and mark as processing
+        final index = _notifications.indexWhere((n) => n['id'].toString() == notificationId.toString());
+        if (index >= 0) {
+          _notifications[index]['processing'] = true;
+        }
+      });
       
-      if (response['status']) {
-        // Update notification in the list
-        setState(() {
-          final index = _notifications.indexWhere((n) => n['id'] == notificationId);
-          if (index >= 0) {
+      // Convert to int
+      final id = int.parse(notificationId.toString());
+      
+      final response = await _apiService.markNotificationAsRead(id);
+      
+      // Always update UI regardless of response status
+      setState(() {
+        final index = _notifications.indexWhere((n) => n['id'].toString() == notificationId.toString());
+        if (index >= 0) {
+          // Remove processing state
+          _notifications[index]['processing'] = false;
+          
+          // If API call was successful, mark as read
+          if (response['status']) {
             _notifications[index]['is_read'] = true;
           }
-        });
+        }
+      });
+      
+      if (response['status']) {
+        // Update in notification service
+        _notificationService.markNotificationAsRead(id);
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Notification marked as read'),
+            backgroundColor: AppTheme.successColor,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['msg'] ?? 'Failed to mark notification as read'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
       }
     } catch (e) {
+      // Remove processing state
+      setState(() {
+        final index = _notifications.indexWhere((n) => n['id'].toString() == notificationId.toString());
+        if (index >= 0) {
+          _notifications[index]['processing'] = false;
+        }
+      });
+      
       debugPrint('Error marking notification as read: ${e.toString()}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error marking notification as read: ${e.toString()}'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
     }
+  }
+
+  Future<void> _markAllAsRead() async {
+    // Get unread notification IDs
+    final unreadNotifications = _notifications
+        .where((n) => n['is_read'] == false || n['is_read'] == 0)
+        .toList();
+
+    if (unreadNotifications.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No unread notifications'),
+          backgroundColor: AppTheme.infoColor,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final shouldMarkAll = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Mark All as Read', style: AppTheme.titleStyle),
+        content: Text(
+          'Are you sure you want to mark all notifications as read?',
+          style: AppTheme.bodyStyle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Mark All Read'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!shouldMarkAll) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    int successCount = 0;
+
+    // Process each notification
+    for (final notification in unreadNotifications) {
+      try {
+        // Get ID and ensure it's an int
+        final idRaw = notification['id'];
+        if (idRaw == null) continue;
+
+        final id = int.tryParse(idRaw.toString()) ?? 0;
+        if (id <= 0) continue;
+
+        final response = await _apiService.markNotificationAsRead(id);
+        if (response['status']) {
+          successCount++;
+          _notificationService.markNotificationAsRead(id);
+        }
+      } catch (e) {
+        debugPrint('Error marking notification as read: ${e.toString()}');
+      }
+    }
+
+    // Reload notifications to reflect changes
+    await _loadNotifications();
+    
+    // Show result message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Marked $successCount notifications as read'),
+        backgroundColor: AppTheme.successColor,
+      ),
+    );
   }
 
   @override
@@ -115,7 +255,19 @@ class _ActivityPageState extends State<ActivityPage> {
                 ? _buildErrorView()
                 : _buildNotificationList(),
       ),
+      floatingActionButton: _hasUnreadNotifications()
+      ? FloatingActionButton(
+        onPressed: _markAllAsRead,
+        backgroundColor: AppTheme.primaryColor,
+        child: Icon(Icons.done_all),
+        tooltip: 'Mark all as read',
+      )
+      : null,
     );
+  }
+
+  bool _hasUnreadNotifications() {
+    return _notifications.any((n) => n['is_read'] == false || n['is_read'] == 0);
   }
 
   Widget _buildErrorView() {
@@ -184,6 +336,7 @@ class _ActivityPageState extends State<ActivityPage> {
       itemBuilder: (context, index) {
         final notification = _notifications[index];
         final isRead = notification['is_read'] == true || notification['is_read'] == 1;
+        final isProcessing = notification['processing'] == true;
         final dateTime = DateTime.parse(notification['created_at']);
         final formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
         
@@ -192,10 +345,6 @@ class _ActivityPageState extends State<ActivityPage> {
           color: isRead ? null : AppTheme.primaryColor.withOpacity(0.05),
           child: InkWell(
             onTap: () {
-              if (!isRead) {
-                _markAsRead(notification['id']);
-              }
-              
               // If this is a task notification, navigate to the task
               if (notification['task_id'] != null) {
                 // TODO: Navigate to task details
@@ -216,15 +365,45 @@ class _ActivityPageState extends State<ActivityPage> {
                           ),
                         ),
                       ),
+                      // Mark as read button
                       if (!isRead)
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
+                        isProcessing
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.primaryColor,
+                                  ),
+                                ),
+                              )
+                            : IconButton(
+                                icon: Icon(
+                                  Icons.done,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                onPressed: () {
+                                  final notificationId = notification['id'];
+                                  if (notificationId != null) {
+                                    _markAsRead(int.tryParse(notificationId.toString()) ?? 0);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Invalid notification ID'),
+                                        backgroundColor: AppTheme.errorColor,
+                                      ),
+                                    );
+                                  }
+                                },
+                                tooltip: 'Mark as read',
+                                constraints: BoxConstraints(
+                                  minWidth: 40,
+                                  minHeight: 40,
+                                ),
+                                padding: EdgeInsets.zero,
+                                iconSize: 20,
+                              ),
                     ],
                   ),
                   SizedBox(height: AppTheme.spacingSm),
@@ -233,11 +412,43 @@ class _ActivityPageState extends State<ActivityPage> {
                     style: AppTheme.bodyStyle,
                   ),
                   SizedBox(height: AppTheme.spacingMd),
-                  Text(
-                    formattedDate,
-                    style: AppTheme.captionStyle.copyWith(
-                      color: AppTheme.textSecondaryColor,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        formattedDate,
+                        style: AppTheme.captionStyle.copyWith(
+                          color: AppTheme.textSecondaryColor,
+                        ),
+                      ),
+                      // Status indicator
+                      if (isRead)
+                        Text(
+                          'Read',
+                          style: AppTheme.captionStyle.copyWith(
+                            color: AppTheme.textSecondaryColor,
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingSm,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppTheme.borderRadiusSm),
+                          ),
+                          child: Text(
+                            'New',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -250,7 +461,11 @@ class _ActivityPageState extends State<ActivityPage> {
 
   @override
   void dispose() {
-    // Don't dispose the notification service here since it's a singleton
+    _ActivityPageStates.remove(widget);
     super.dispose();
+  }
+
+  void loadNotifications() {
+    _loadNotifications();
   }
 }

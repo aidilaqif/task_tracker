@@ -203,7 +203,7 @@ class ApiService {
   // Mark Notification as Read
   Future<dynamic> markNotificationAsRead(int notificationId) async {
     try {
-      final response = await http.get(
+      final response = await http.put(
         Uri.parse(ApiRoutes.markNotificationAsRead(notificationId)),
         headers: {'Content-Type': 'application/json'},
       );

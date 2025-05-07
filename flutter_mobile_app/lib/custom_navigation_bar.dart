@@ -80,8 +80,11 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
           IconButton(
             icon: Icon(Icons.done_all, color: AppTheme.textOnPrimaryColor),
             onPressed: () {
-              // Mark all notifications as read
+              // Refresh notifications
+              final activityPage = _pages[1] as ActivityPage;
+              activityPage.refreshNotifications();
             },
+            tooltip: 'Refresh',
           ),
         ];
       
