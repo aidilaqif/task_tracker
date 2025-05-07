@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/custom_navigation_bar.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
+import 'package:flutter_mobile_app/services/notification_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -70,6 +71,25 @@ class _LoginPageState extends State<LoginPage> {
       if (response['status'] == true) {
         // Check if user role is 'user'
         if (response['data']['role'] == 'user') {
+          // Initialize notification service
+          int ? userId;
+          try {
+            final userIdValue = response['data']['user']['id'];
+            if (userIdValue != null) {
+              userId = int.tryParse(userIdValue.toString()) ?? 0;
+            } else {
+              userId = 0;
+            }
+
+            if (userId > 0) {
+              // Only initialize if we have a valid user ID
+              NotificationService().initSocket(userId);
+            } else {
+              print('Warning: Invalid user ID for socket initialization: $userIdValue');
+            }
+          } catch (e) {
+            print('Error parsing user ID: ${e.toString()}');
+          }
           // Navigate to home page and pass user data
           Navigator.pushReplacement(
             context,
