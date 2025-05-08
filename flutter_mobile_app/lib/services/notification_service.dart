@@ -38,65 +38,108 @@ class NotificationService {
     // Get notification server URL
     final serverUrl = dotenv.env['NOTIFICATION_SERVER_URL'];
 
+    debugPrint('Socket.IO: Attempting to connect to $serverUrl with user ID $userId');
+
     try {
       // Configure Socket
       _socket = IO.io(
         serverUrl,
         IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
+          .setTransports(['websocket', 'polling']) // Support both transport types
+          .disableAutoConnect() // We'll connect manually
           .enableForceNew()
+          .enableReconnection() // Enable reconnection
+          .setReconnectionAttempts(10) // More reconnection attempts
+          .setReconnectionDelay(1000) // Start with 1 second delay
+          .setReconnectionDelayMax(5000) // Max 5 seconds between attempts
+          .setQuery({'userId': userId.toString()}) // Send userId in query
           .build()
       );
-      // Connect to socket
-      _socket?.connect();
-      // Setup event listener
+
+      // Setup event listeners
       _setupSocketListeners(userId);
 
-      debugPrint('Socket.IO: Attempting to connect to $serverUrl');
+      // Connect to socket
+      _socket?.connect();
+
+      debugPrint('Socket.IO: Connection initiated to $serverUrl');
     } catch (e) {
       debugPrint('Socket.IO: Connection error: ${e.toString()}');
     }
   }
   // Setup event listners
   void _setupSocketListeners(int userId) {
-    _socket?.onConnect((_){
-      debugPrint('Socket.IO: Connected');
+    _socket?.onConnect((_) {
+      debugPrint('Socket.IO: Connected successfully');
       //Authenticate with user ID
       _authenticateUser(userId);
     });
 
-    _socket?.onDisconnect((_){
-      debugPrint('Socket.IO: Disconnected');
-    });
-
-    _socket?.onConnectError((error){
+    _socket?.onConnectError((error) {
       debugPrint('Socket.IO: Connection error: $error');
     });
 
-    _socket?.onError((error){
+    _socket?.onDisconnect((_) {
+      debugPrint('Socket.IO: Disconnected');
+      // Try to reconnect
+      Future.delayed(Duration(seconds: 3), () {
+        if (_socket != null && !_socket!.connected) {
+          debugPrint('Socket.IO: Attempting to reconnect...');
+          _socket?.connect();
+        }
+      });
+    });
+
+    _socket?.onError((error) {
       debugPrint('Socket.IO: Error: $error');
     });
 
-    // Listen for notification events
-    _socket?.on('new-notification', (data){
-      debugPrint('Socket.IO: New notification received: $data');
-      _notificationStreamController.add(data);
+    _socket?.onReconnect((_) {
+      debugPrint('Socket.IO: Reconnected');
+      // Re-authenticate after reconnection
+      _authenticateUser(userId);
+    });
 
-      // Send acknowledgement to server
-      _socket?.emit('notification-received', {'notificationId': data['id']});
+    _socket?.onReconnectAttempt((attemptNumber) {
+      debugPrint('Socket.IO: Reconnection attempt $attemptNumber');
+    });
+
+    _socket?.onReconnectError((error) {
+      debugPrint('Socket.IO: Reconnection error: $error');
+    });
+
+    _socket?.onReconnectFailed((_) {
+      debugPrint('Socket.IO: Reconnection failed');
+    });
+
+    // Listen for notification events
+    _socket?.on('new-notification', (data) {
+      debugPrint('Socket.IO: New notification received: $data');
+      if (data != null) {
+        _notificationStreamController.add(data);
+
+        // Send acknowledgement to server
+        _socket?.emit('notification-received', {'notificationId': data['id']});
+      }
     });
 
     // Listen for unread notifications
-    _socket?.on('unread-notifications', (data){
+    _socket?.on('unread-notifications', (data) {
       debugPrint('Socket.IO: Unread notifications received: $data');
 
-      // Process each notifications
+      // Process each notification
       if (data is List) {
         for (var notification in data) {
-          _notificationStreamController.add(notification);
+          if (notification != null) {
+            _notificationStreamController.add(notification);
+          }
         }
       }
+    });
+    
+    // Listen for authentication response
+    _socket?.once('authenticated', (data) {
+      debugPrint('Socket.IO: Authentication successful: $data');
     });
   }
 

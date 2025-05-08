@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
+import 'package:flutter_mobile_app/models/task_model.dart';
+import 'package:flutter_mobile_app/pages/tasks_detail_page.dart';
 import 'package:flutter_mobile_app/services/notification_service.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
 import 'package:intl/intl.dart';
@@ -339,15 +341,18 @@ class _ActivityPageState extends State<ActivityPage> {
         final isProcessing = notification['processing'] == true;
         final dateTime = DateTime.parse(notification['created_at']);
         final formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
-        
+        final bool isTaskAssignment =
+          notification['title'] == 'Task Assigned' ||
+          notification['title'].toLowerCase().contains('assigned');
+
         return Card(
           margin: EdgeInsets.only(bottom: AppTheme.spacingMd),
-          color: isRead ? null : AppTheme.primaryColor.withOpacity(0.05),
+          color: isRead ? null : AppTheme.primaryColor.withValues(alpha:0.05),
           child: InkWell(
             onTap: () {
               // If this is a task notification, navigate to the task
               if (notification['task_id'] != null) {
-                // TODO: Navigate to task details
+                _navigateToTaskDetails(notification['task_id']);
               }
             },
             child: Padding(
@@ -357,6 +362,13 @@ class _ActivityPageState extends State<ActivityPage> {
                 children: [
                   Row(
                     children: [
+                      if (isTaskAssignment)
+                        Icon(
+                          Icons.assignment_outlined,
+                          color: AppTheme.primaryColor,
+                          size: 20,
+                        ),
+                      SizedBox(width: isTaskAssignment ? AppTheme.spacingSm : 0),
                       Expanded(
                         child: Text(
                           notification['title'] ?? 'Notification',
@@ -450,6 +462,27 @@ class _ActivityPageState extends State<ActivityPage> {
                         ),
                     ],
                   ),
+                if (notification['task_id'] != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: AppTheme.spacingMd),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            _navigateToTaskDetails(notification['task_id']);
+                          },
+                          child: Text(
+                            'View Task',
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -467,5 +500,46 @@ class _ActivityPageState extends State<ActivityPage> {
 
   void loadNotifications() {
     _loadNotifications();
+  }
+
+  void _navigateToTaskDetails(dynamic taskId) {
+    if (taskId == null) return;
+
+    int id;
+    try {
+      id = int.parse(taskId.toString());
+    } catch (e) {
+      print('Error parsing task ID: $e');
+      return;
+    }
+
+    _apiService.viewTask(id).then((response) {
+      if (response['status'] && response['data'] != null) {
+        final task = Task.fromJson(response['data']);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TasksDetailPage(
+              task: task,
+              onTaskUpdated: () {},
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load task details'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading task details: $error'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    });
   }
 }

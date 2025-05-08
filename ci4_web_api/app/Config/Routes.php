@@ -67,3 +67,4 @@ $routes->delete('users/team/(:num)', 'UsersController::removeUserFromTeam/$1');
 $routes->post('notifications/task', 'NotificationsController::sendTaskNotification');
 $routes->get('notifications/user/(:num)', 'NotificationsController::getUserNotifications/$1');
 $routes->put('notifications/read/(:num)', 'NotificationsController::markAsRead/$1');
+$routes->post('notifications/task-assignment', 'TasksController::sendTaskAssignmentNotification');

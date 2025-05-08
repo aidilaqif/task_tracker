@@ -8,7 +8,7 @@ const cors = require('cors');
 // Configuration from environment variables
 const PORT = process.env.PORT;
 const NODE_ENV = process.env.NODE_ENV;
-const POLL_INTERVAL = parseInt(process.env.NOTIFICATION_POLL_INTERVAL, 10);
+const POLL_INTERVAL = parseInt(process.env.NOTIFICATION_POLL_INTERVAL, 10) || 5000;
 
 // Database configuration
 const dbConfig = {
@@ -22,6 +22,10 @@ const dbConfig = {
   queueLimit: 0
 };
 
+// Track processed notification
+const processedNotifications = new Set();
+const MAX_TRACKED_NOTIFICATIONS = 1000;
+
 // Initialize Express app
 const app = express();
 app.use(cors());
@@ -34,9 +38,12 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.SOCKET_CORS_ORIGIN || "*",
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["*"]
   },
-  path: process.env.SOCKET_PATH || "/socket.io"
+  path: process.env.SOCKET_PATH || "/socket.io",
+  transports: ['websocket', 'polling']
 });
 
 // Create MySQL connection pool
@@ -68,6 +75,7 @@ io.on('connection', (socket) => {
       userId = parseInt(userId, 10);
       
       if (isNaN(userId) || userId <= 0) {
+        console.error(`Invalid user ID for authentication: ${userId}`);
         socket.emit('error', { message: 'Invalid user ID' });
         return;
       }
@@ -82,39 +90,53 @@ io.on('connection', (socket) => {
       
       // Let client know they've been authenticated
       socket.emit('authenticated', { userId, timestamp: new Date().toISOString() });
+      console.log(`Sent authentication confirmation to user ${userId}`);
       
       // Fetch and send any unread notifications to this user
-      await sendUnreadNotifications(userId);
+      const notificationCount = await sendUnreadNotifications(userId);
+      console.log(`Sent ${notificationCount} unread notifications to user ${userId}`);
     } catch (error) {
       console.error(`Authentication error for socket ${socket.id}:`, error);
-      socket.emit('error', { message: 'Authentication failed' });
+      socket.emit('error', { message: 'Authentication failed: ' + error.message });
     }
   });
   
-  // Handle explicit notification acknowledgements from client
+  // Improved notification received acknowledgement
   socket.on('notification-received', (data) => {
     if (data && data.notificationId) {
-      console.log(`Notification ${data.notificationId} received by client`);
+      console.log(`Client acknowledged receipt of notification ${data.notificationId}`);
     }
   });
   
-  // Handle disconnection
+  // Handle disconnection with better logging
   socket.on('disconnect', () => {
     // Remove from connected users
     for (const [userId, socketId] of connectedUsers.entries()) {
       if (socketId === socket.id) {
+        console.log(`User ${userId} disconnected (socket ${socket.id})`);
         connectedUsers.delete(userId);
-        console.log(`User ${userId} disconnected`);
         break;
       }
     }
   });
-  
-  // Handle errors
-  socket.on('error', (error) => {
-    console.error(`Socket error for ${socket.id}:`, error);
-  });
 });
+
+function trackNotification(notificationId) {
+  // Add to processed set
+  processedNotifications.add(notificationId);
+
+  // Keep the set size manageable
+  if (processedNotifications.size > MAX_TRACKED_NOTIFICATIONS) {
+    // Convert to array, keep only the most recent entries
+    const notificationArray = Array.from(processedNotifications);
+    const startIndex = notificationArray.length - Math.floor(MAX_TRACKED_NOTIFICATIONS / 2);
+    processedNotifications.clear();
+
+    for (let i = startIndex; i < notificationArray.length; i++) {
+      processedNotifications.add(notificationArray[i]);
+    }
+  }
+}
 
 // Send unread notifications to a specific user
 async function sendUnreadNotifications(userId) {
@@ -127,14 +149,23 @@ async function sendUnreadNotifications(userId) {
     
     if (rows.length > 0) {
       console.log(`Sending ${rows.length} unread notifications to user ${userId}`);
+      
+      // Send all unread notifications in a batch
       io.to(`user-${userId}`).emit('unread-notifications', rows);
+      
+      // Also send each notification individually for better handling
+      for (const notification of rows) {
+        console.log(`Sending individual notification ${notification.id} to user ${userId}`);
+        io.to(`user-${userId}`).emit('new-notification', notification);
+      }
+      
+      return rows.length;
     } else {
       console.log(`No unread notifications for user ${userId}`);
+      return 0;
     }
-    
-    return rows.length;
   } catch (error) {
-    console.error(`Error fetching unread notifications for user ${userId}:`, error);
+    console.error(`Error sending unread notifications to user ${userId}:`, error);
     return 0;
   }
 }
@@ -142,51 +173,233 @@ async function sendUnreadNotifications(userId) {
 // Function to poll database for new notifications
 async function checkForNewNotifications() {
   try {
-    // Look for notifications created in the last polling interval
+    console.log('Checking for new notifications...');
+    
+    // Look for notifications created very recently
     const [rows] = await pool.query(`
       SELECT * FROM notifications 
       WHERE created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)
       AND is_read = 0
-    `, [POLL_INTERVAL / 1000]); // Convert ms to seconds
-    
+    `, [POLL_INTERVAL / 1000 * 3]);
+
     if (rows.length > 0) {
-      console.log(`Found ${rows.length} new notifications`);
+      console.log(`Found ${rows.length} new notifications in this poll interval`);
+
+      // Filter out notifications we've already processed
+      const newNotifications = rows.filter(notification => 
+        !processedNotifications.has(notification.id)
+      );
       
-      // Group notifications by user_id for more efficient processing
-      const notificationsByUser = rows.reduce((acc, notification) => {
-        const userId = notification.user_id;
-        if (!acc[userId]) {
-          acc[userId] = [];
-        }
-        acc[userId].push(notification);
-        return acc;
-      }, {});
+      if (newNotifications.length === 0) {
+        console.log('All notifications have already been processed');
+      } else {
+        console.log(`Processing ${newNotifications.length} new notifications`);
       
-      // Process each user's notifications
-      for (const [userId, notifications] of Object.entries(notificationsByUser)) {
-        // Only send if the user is connected
-        if (connectedUsers.has(parseInt(userId, 10))) {
-          console.log(`Sending ${notifications.length} new notifications to user ${userId}`);
-          io.to(`user-${userId}`).emit('new-notifications', notifications);
-          
-          // Also send individual notifications for better UX
-          for (const notification of notifications) {
-            io.to(`user-${userId}`).emit('new-notification', notification);
+        // Track these notifications as processed to avoid duplicates
+        newNotifications.forEach(notification => {
+          trackNotification(notification.id);
+        });
+
+        // Group notifications by user_id for more efficient processing
+        const notificationsByUser = {};
+        for (const notification of newNotifications) {
+          const userId = notification.user_id;
+          if (!notificationsByUser[userId]) {
+            notificationsByUser[userId] = [];
           }
-        } else {
-          console.log(`User ${userId} is not connected, skipping notification delivery`);
+          notificationsByUser[userId].push(notification);
+        }
+
+        // Process each user's notifications
+        for (const [userId, notifications] of Object.entries(notificationsByUser)) {
+          const userIdInt = parseInt(userId, 10);
+
+          // Only send if the user is connected
+          if (connectedUsers.has(userIdInt)) {
+            const socketId = connectedUsers.get(userIdInt);
+            console.log(`User ${userId} is connected with socket ${socketId}, sending ${notifications.length} notifications`);
+
+            // Send each notification individually for immediate delivery
+            for (const notification of notifications) {
+              console.log(`Emitting notification ${notification.id} to user ${userId}`);
+
+              // Send directly to the user's socket
+              io.to(socketId).emit('new-notification', notification);
+
+              // Also emit to the user's room as backup
+              io.to(`user-${userIdInt}`).emit('new-notification', notification);
+            }
+          } else {
+            console.log(`User ${userId} is not connected, notifications will be delivered on next connection`);
+          }
         }
       }
+    } else {
+      console.log('No new notifications found in this poll interval');
     }
   } catch (error) {
     console.error('Error checking for new notifications:', error);
   }
-  
-  // Schedule the next check after the poll interval
-  setTimeout(checkForNewNotifications, POLL_INTERVAL);
+
+  // Schedule the next check, using a shorter interval help catch updates faster
+  setTimeout(checkForNewNotifications, POLL_INTERVAL / 2);
 }
 
-// API routes
+// API route for direct notification delivery
+app.post('/send-notification', async (req, res) => {
+  try {
+    console.log('Received notification request:', req.body);
+    
+    const { notification_id, user_id, task_id, title, message } = req.body;
+    
+    if (!notification_id || !user_id) {
+      console.error('Missing required fields in notification request:', req.body);
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Log the data received
+    console.log(`Processing notification ${notification_id} for user ${user_id}, task ${task_id || 'N/A'}`);
+    
+    // Convert IDs to integers
+    const notificationId = parseInt(notification_id, 10);
+    const userId = parseInt(user_id, 10);
+    
+    // Create a notification object from the request data
+    const notificationFromRequest = {
+      id: notificationId,
+      user_id: userId,
+      task_id: task_id ? parseInt(task_id, 10) : null,
+      title: title || '',
+      message: message || '',
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    
+    // Try to verify the notification exists in the database, but don't fail if not found
+    try {
+      const [existingNotifications] = await pool.query(
+        'SELECT * FROM notifications WHERE id = ?',
+        [notificationId]
+      );
+      
+      if (existingNotifications.length > 0) {
+        console.log(`Found notification ${notificationId} in database`);
+        notificationFromRequest.created_at = existingNotifications[0].created_at;
+      } else {
+        console.log(`Notification ${notificationId} not found in database - will use request data`);
+      }
+    } catch (dbError) {
+      console.warn(`Database error checking notification ${notificationId}: ${dbError.message}`);
+    }
+    
+    if (!global.processedNotifications) {
+      global.processedNotifications = new Set();
+    }
+    global.processedNotifications.add(notificationId);
+    
+    // Check if user is connected
+    const isUserConnected = connectedUsers.has(userId);
+    console.log(`User ${userId} connected: ${isUserConnected}`);
+
+    if (isUserConnected) {
+      // Get socket ID
+      const socketId = connectedUsers.get(userId);
+      console.log(`Sending real-time notification ${notificationId} to user ${userId} on socket ${socketId}`);
+
+      // Send via direct socket connection first
+      const socket = io.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.emit('new-notification', notificationFromRequest);
+        console.log(`Emitted notification directly to socket ${socketId}`);
+      } else {
+        console.log(`Socket ${socketId} not found, falling back to room emission`);
+      }
+
+      // Broadcast to the user's room as backup
+      io.to(`user-${userId}`).emit('new-notification', notificationFromRequest);
+      console.log(`Broadcasted notification to room user-${userId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Notification sent in real-time',
+        notification_id: notificationId,
+        connected: true
+      });
+    } else {
+      console.log(`User ${userId} not connected, notification will be delivered on next connection`);
+      res.status(200).json({
+        success: true,
+        message: 'Notification saved but user not connected',
+        notification_id: notificationId,
+        connected: false
+      });
+    }
+  } catch (error) {
+    console.error('Error processing notification request:', error);
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
+  }
+});
+
+// Special route for task assignment notifications
+app.post('/task-assigned', async (req, res) => {
+  try {
+    console.log('Task assignment notification request received:', req.body);
+    const { user_id, task_id, task_title } = req.body;
+    
+    if (!user_id || !task_id || !task_title) {
+      console.error('Missing required fields in task assignment request:', req.body);
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Insert notification into database
+    const [result] = await pool.query(`
+      INSERT INTO notifications (user_id, task_id, title, message, is_read)
+      VALUES (?, ?, ?, ?, 0)
+    `, [user_id, task_id, 'Task Assigned', `You have been assigned to task: ${task_title}`]);
+    
+    // Get the inserted notification
+    const [notifications] = await pool.query(`
+      SELECT * FROM notifications WHERE id = ?
+    `, [result.insertId]);
+    
+    if (notifications.length > 0) {
+      const notification = notifications[0];
+      const userId = parseInt(user_id, 10);
+      
+      // Immediately try to send the notification
+      if (connectedUsers.has(userId)) {
+        console.log(`Sending immediate task assignment notification to user ${userId}`);
+        
+        // Get the socket ID
+        const socketId = connectedUsers.get(userId);
+        
+        // Try direct socket emit first
+        io.to(socketId).emit('new-notification', notification);
+        
+        // Also emit to the user room as backup
+        io.to(`user-${userId}`).emit('new-notification', notification);
+        
+        res.status(201).json({
+          success: true,
+          message: 'Task assignment notification sent in real-time',
+          notification
+        });
+      } else {
+        console.log(`User ${userId} is not connected, notification saved for later delivery`);
+        res.status(201).json({
+          success: true,
+          message: 'Task assignment notification saved but user not connected',
+          notification
+        });
+      }
+    } else {
+      res.status(500).json({ error: 'Failed to retrieve created notification' });
+    }
+  } catch (error) {
+    console.error('Error sending task assignment notification:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {
@@ -213,61 +426,6 @@ app.get('/connected-users', (req, res) => {
     connectedUsers: users,
     count: users.length
   });
-});
-
-// Manually trigger a notification (useful for testing)
-app.post('/trigger-notification', async (req, res) => {
-  if (NODE_ENV === 'production') {
-    // In production, require authentication
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey !== process.env.ADMIN_API_KEY) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
-  
-  const { userId, title, message, taskId } = req.body;
-  
-  if (!userId || !title || !message) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-  
-  try {
-    // Insert notification into database
-    const [result] = await pool.query(`
-      INSERT INTO notifications (user_id, task_id, title, message, is_read)
-      VALUES (?, ?, ?, ?, 0)
-    `, [userId, taskId || null, title, message]);
-    
-    // Get the inserted notification
-    const [notifications] = await pool.query(`
-      SELECT * FROM notifications WHERE id = ?
-    `, [result.insertId]);
-    
-    if (notifications.length > 0) {
-      const notification = notifications[0];
-      
-      // Send to user if connected
-      if (connectedUsers.has(parseInt(userId, 10))) {
-        io.to(`user-${userId}`).emit('new-notification', notification);
-        res.status(201).json({ 
-          success: true, 
-          message: 'Notification created and sent',
-          notification
-        });
-      } else {
-        res.status(201).json({ 
-          success: true, 
-          message: 'Notification created but user not connected',
-          notification
-        });
-      }
-    } else {
-      res.status(500).json({ error: 'Notification created but could not be retrieved' });
-    }
-  } catch (error) {
-    console.error('Error triggering notification:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
 });
 
 // Handle 404 for any other routes

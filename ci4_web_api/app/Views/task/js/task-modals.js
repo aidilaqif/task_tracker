@@ -92,51 +92,27 @@ document.addEventListener('DOMContentLoaded', function(){
         const priority = document.getElementById('editTaskPriority').value;
         const progress = document.getElementById('editTaskProgress').value;
 
-        // Update progress
-        fetch(`/tasks/progress/${taskId}`, {
+        // Get the original task to check if assigned user changed
+        const originalTask = window.allTasks.find(t => t.id == taskId);
+        const userChanged = originalTask && originalTask.user_id != userId;
+
+        // Create data object for API
+        const data = {
+            user_id: parseInt(userId),
+            title: taskTitle,
+            description: taskDescription,
+            due_date: dueDate || null,
+            status: status,
+            priority: priority,
+        };
+
+        // Call the API to update task
+        fetch(`/tasks/edit/${taskId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                progress: parseInt(progress)
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                console.warn('Progress update failed, continuing with general update');
-                return { status: false };
-            }
-            return response.json();
-        })
-        .then ((progressResponse) => {
-            // Get the automatically updated status if available
-            let updatedStatus = status; // Default to the form value
-        
-            if (progressResponse && progressResponse.status && progressResponse.data) {
-                // If the progress update was successful and returned the updated task, use the status from the response
-                console.log("Progress update response:", progressResponse);
-                updatedStatus = progressResponse.data.status;
-                console.log("Status after progress update:", updatedStatus);
-            }
-            // Create data object for API
-            const data = {
-                user_id: parseInt(userId),
-                title: taskTitle,
-                description: taskDescription,
-                due_date: dueDate || null,
-                status: updatedStatus,
-                priority: priority,
-            };
-
-            // Call the API to update task
-            return fetch(`/tasks/edit/${taskId}`,{
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
+            body: JSON.stringify(data)
         })
         .then(response => {
             if (!response.ok) {
@@ -150,9 +126,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 if (typeof window.refreshTaskList === 'function') {
                     window.refreshTaskList();
                 }
-                // Close modal
-                document.getElementById('editTaskModal').classList.remove('show');
-                alert('Task updated successfully!');
+                
+                // Update progress if needed
+                updateTaskProgress(taskId, progress).then(() => {
+                    // Close modal
+                    document.getElementById('editTaskModal').classList.remove('show');
+                    alert('Task updated successfully!');
+                });
             } else {
                 alert(data.msg || 'Failed to update task');
             }
@@ -185,6 +165,30 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 });
+
+// Helper function to update progress separately
+function updateTaskProgress(taskId, progress) {
+    return fetch(`/tasks/progress/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            progress: parseInt(progress)
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.warn('Progress update failed');
+            return { status: false };
+        }
+        return response.json();
+    })
+    .catch(error => {
+        console.error('Error updating progress:', error);
+        return { status: false };
+    });
+}
 
 // Function to fetch users for assingment dropdown
 function fetchUsers() {
@@ -286,6 +290,7 @@ function openEditTaskModal(taskId) {
             document.getElementById('editTaskTitle').value = task.title;
             document.getElementById('editTaskDescription').value = task.description || '';
             document.getElementById('editAssignedTo').value = task.user_id;
+            console.log('Setting assigned user to:', task.user_id);
 
             // Set due data if it exists
             if (task.due_date) {
