@@ -50,11 +50,15 @@ class ApiService {
 
   // 2. Task Management
   // Get Tasks for a user (with optional status filter)
-  Future<dynamic> getUserTasks(int userId, {String? status}) async {
+  Future<dynamic> getUserTasks(int userId, {String? status, bool includeReassigned = false}) async {
     try {
       String url = status != null
         ? ApiRoutes.getUserTasksByStatus(userId, status)
         : ApiRoutes.getUserTasks(userId);
+
+      if (includeReassigned) {
+        url += url.contains('?') ? '&include_reassigned=1' : '?include_reassigned=1';
+      }
 
       final response = await http.get(
         Uri.parse(url),
@@ -86,10 +90,16 @@ class ApiService {
   }
 
   // View single task
-  Future<dynamic> viewTask(int taskId) async {
+  Future<dynamic> viewTask(int taskId, {int? userId}) async {
     try {
+      String url = ApiRoutes.viewTask(taskId);
+
+      if (userId != null) {
+        url += '?user_id=$userId';
+      }
+
       final response = await http.get(
-        Uri.parse(ApiRoutes.viewTask(taskId)),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'}
       );
 
@@ -101,10 +111,16 @@ class ApiService {
   }
 
   // Update Task Status (for requesting extension)
-  Future<dynamic> updateTaskStatus(int taskId, String status) async {
+  Future<dynamic> updateTaskStatus(int taskId, String status, [int? userId]) async {
     try {
+      String url = ApiRoutes.updateTaskStatus(taskId);
+
+      if (userId != null) {
+        url += '?user_id=$userId';
+      }
+
       final response = await http.put(
-        Uri.parse(ApiRoutes.updateTaskStatus(taskId)),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );
@@ -117,10 +133,15 @@ class ApiService {
   }
 
   // Update Task Progress
-  Future<dynamic> updateTaskProgress(int taskId, int progress) async {
+  Future<dynamic> updateTaskProgress(int taskId, int progress, [int? userId]) async {
     try {
+      String url = ApiRoutes.updateTaskProgress(taskId);
+
+      if (userId != null) {
+        url += '?user_id=$userId';
+      }
       final response = await http.put(
-        Uri.parse(ApiRoutes.updateTaskProgress(taskId)),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'progress': progress}),
       );

@@ -18,7 +18,7 @@ const dbConfig = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 20,
   queueLimit: 0
 };
 
@@ -173,7 +173,7 @@ async function sendUnreadNotifications(userId) {
 // Function to poll database for new notifications
 async function checkForNewNotifications() {
   try {
-    console.log('Checking for new notifications...');
+    // console.log('Checking for new notifications...');
     
     // Look for notifications created very recently
     const [rows] = await pool.query(`
@@ -234,9 +234,9 @@ async function checkForNewNotifications() {
           }
         }
       }
-    } else {
-      console.log('No new notifications found in this poll interval');
-    }
+    } // else {
+    //   console.log('No new notifications found in this poll interval');
+    // }
   } catch (error) {
     console.error('Error checking for new notifications:', error);
   }
@@ -248,7 +248,7 @@ async function checkForNewNotifications() {
 // API route for direct notification delivery
 app.post('/send-notification', async (req, res) => {
   try {
-    console.log('Received notification request:', req.body);
+    // console.log('Received notification request:', req.body);
     
     const { notification_id, user_id, task_id, title, message } = req.body;
     

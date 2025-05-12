@@ -516,11 +516,14 @@ class _ActivityPageState extends State<ActivityPage> {
     _apiService.viewTask(id).then((response) {
       if (response['status'] && response['data'] != null) {
         final task = Task.fromJson(response['data']);
+        final userId = int.parse(widget.userData['user']['id'].toString());
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TasksDetailPage(
               task: task,
+              currentUserId: userId,
               onTaskUpdated: () {},
             ),
           ),

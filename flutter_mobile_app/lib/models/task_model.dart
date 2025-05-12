@@ -9,6 +9,8 @@ class Task {
   final String progress;
   final String createdAt;
   final String updatedAt;
+  final bool isAssignedToYou;
+  final String? assignedTo;
 
   Task({
     required this.id,
@@ -21,6 +23,8 @@ class Task {
     required this.progress,
     required this.createdAt,
     required this.updatedAt,
+    this.isAssignedToYou = false,
+    this.assignedTo,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -38,6 +42,8 @@ class Task {
       progress: json['progress'] ?? 0,
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      isAssignedToYou: json['isAssignedToYou'] == true || json['isAssignedToYou'] == 1 || json['isAssignedToYou'] == '1' || json['isAssignedToYou'] == 'true',
+      assignedTo: json['assigned_to'],
     );
   }
 
@@ -64,6 +70,8 @@ class Task {
         return 'In Progress';
       case 'completed':
         return 'Completed';
+      case 'request-extension':
+        return 'Extension Requested';
       default:
         return 'Unknown';
     }

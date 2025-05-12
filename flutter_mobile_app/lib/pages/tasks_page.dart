@@ -152,11 +152,14 @@ class TasksPageState extends State<TasksPage> {
     });
   }
   void _navigateToTaskDetails(Task task) {
+    final userId = int.parse(widget.userData['user']['id'].toString());
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TasksDetailPage(
           task: task,
+          currentUserId: userId,
           onTaskUpdated: loadTasks,
         ),
       ),
