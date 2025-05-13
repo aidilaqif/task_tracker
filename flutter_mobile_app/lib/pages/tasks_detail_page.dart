@@ -149,6 +149,31 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
       );
     }
   }
+  Future<void> _markRelatedNotificationsAsRead() async {
+    try {
+      final userId = int.parse(widget.currentUserId.toString());
+      final response = await _apiService.getUserNotifications(userId, isRead: false);
+
+      if (response['status'] && response['data'] != null) {
+        final notifications = response['data'] as List;
+
+        // Find all unread notifications for this task
+        for (var notification in notifications) {
+          if (notification['task_id'] != null && 
+              int.tryParse(notification['task_id'].toString()) == widget.task.id) {
+
+            // Mark this notification as read
+            final notificationId = int.tryParse(notification['id'].toString());
+            if (notificationId != null) {
+              await _apiService.markNotificationAsRead(notificationId);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error marking related notifications as read: $e');
+    }
+  }
 
   void _showStatusUpdateDialog() {
     showDialog(
@@ -200,6 +225,7 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
     _task = widget.task;
     _progressController.text = _task.progress;
     _fetchTaskDetails();
+    _markRelatedNotificationsAsRead();
   }
 
     Future<void> _fetchTaskDetails() async {

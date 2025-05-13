@@ -352,7 +352,10 @@ class _ActivityPageState extends State<ActivityPage> {
             onTap: () {
               // If this is a task notification, navigate to the task
               if (notification['task_id'] != null) {
-                _navigateToTaskDetails(notification['task_id']);
+                _navigateToTaskDetails(
+                  notification['task_id'],
+                  int.tryParse(notification['id'].toString())
+                );
               }
             },
             child: Padding(
@@ -470,7 +473,10 @@ class _ActivityPageState extends State<ActivityPage> {
                       children: [
                         TextButton(
                           onPressed: () {
-                            _navigateToTaskDetails(notification['task_id']);
+                            _navigateToTaskDetails(
+                              notification['task_id'],
+                              int.tryParse(notification['id'].toString()),
+                              );
                           },
                           child: Text(
                             'View Task',
@@ -502,7 +508,7 @@ class _ActivityPageState extends State<ActivityPage> {
     _loadNotifications();
   }
 
-  void _navigateToTaskDetails(dynamic taskId) {
+  void _navigateToTaskDetails(dynamic taskId, [int? notificationId]) {
     if (taskId == null) return;
 
     int id;
@@ -517,6 +523,11 @@ class _ActivityPageState extends State<ActivityPage> {
       if (response['status'] && response['data'] != null) {
         final task = Task.fromJson(response['data']);
         final userId = int.parse(widget.userData['user']['id'].toString());
+
+        // Mark notification as read if notification ID is provided
+        if (notificationId != null)  {
+          _markAsRead(notificationId);
+        }
 
         Navigator.push(
           context,
