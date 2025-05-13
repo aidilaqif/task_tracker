@@ -235,24 +235,4 @@ class ApiService {
       return {'status': false, 'msg': 'Network error: ${e.toString()}'};
     }
   }
-  // Send notification to admin
-  Future<dynamic> sendNotification(int userId, int taskId, String title, String message) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiRoutes.baseUrl}/notifications/task'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': userId,
-          'task_id': taskId,
-          'title': title,
-          'message': message
-        }),
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Error sending notification: ${e.toString()}'};
-    }
-  }
 }

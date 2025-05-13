@@ -41,12 +41,10 @@ $routes->get('tasks/user/(:num)', 'TasksController::getUserTasks/$1');
 $routes->put('tasks/status/(:num)', 'TasksController::updateTaskStatus/$1');
 $routes->get('tasks/priorities', 'TasksController::getPriorityLevels');
 $routes->put('tasks/priority/(:num)', 'TasksController::updateTaskPriority/$1');
-$routes->put('tasks/extension-response/(:num)', 'TasksController::respondToExtensionRequest/$1');
 
 // progress tracking routes
 $routes->put('tasks/progress/(:num)', 'TasksController::updateTaskProgress/$1');
 $routes->get('tasks/stats', 'TasksController::getTaskCompletionStats');
-$routes->get('tasks/check-due-soon', 'TasksController::checkTasksDueSoon');
 
 // team route
 $routes->get('teams','TeamController::getAllTeams');

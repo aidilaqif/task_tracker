@@ -119,100 +119,6 @@ io.on('connection', (socket) => {
       }
     }
   });
-
-  // Handle for check-past-due-tasks event
-  socket.on('check-past-due-tasks', async (data) => {
-        try {
-          // Get the user ID from the socket connection
-          let userId = null;
-          for (const [id, socketId] of connectedUsers.entries()) {
-            if (socketId === socket.id) {
-              userId = id;
-              break;
-            }
-          }
-
-          if (!userId) {
-            console.error('User not authenticated for check-past-due-tasks');
-            return;
-          }
-
-          console.log(`Checking due soon tasks for user ${userId}`);
-
-          // Call the API to check for tasks due soon for this specific user
-          const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:8080'}/tasks/user/${userId}?status=pending`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-
-            // Filter tasks due within the next 24 hours
-            const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            const dueSoonTasks = (result.data || []).filter(task => {
-              if (!task.due_date) return false;
-
-              const dueDate = new Date(task.due_date);
-              return dueDate > now && dueDate <= tomorrow;
-            });
-
-            console.log(`Found ${dueSoonTasks.length} tasks due soon for user ${userId}`);
-
-            if (dueSoonTasks.length > 0) {
-              // Emit the due soon tasks back to the client
-              socket.emit('due-soon-tasks', dueSoonTasks);
-
-              // Also send notifications for these tasks
-              for (const task of dueSoonTasks) {
-                try {
-                  // Check if a notification already exists for this task
-                  const [existingNotifications] = await pool.query(
-                    'SELECT * FROM notifications WHERE user_id = ? AND task_id = ? AND title = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)',
-                    [userId, task.id, 'Task Due Soon']
-                  );
-
-                  if (existingNotifications.length === 0) {
-                    // Create a new notification
-                    const [result] = await pool.query(
-                      'INSERT INTO notifications (user_id, task_id, title, message, is_read) VALUES (?, ?, ?, ?, 0)',
-                      [userId, task.id, 'Task Due Soon', `Task "${task.title}" is due soon. Please complete it before the deadline.`]
-                    );
-
-                    if (result.insertId) {
-                      // Get the created notification
-                      const [notifications] = await pool.query(
-                        'SELECT * FROM notifications WHERE id = ?',
-                        [result.insertId]
-                      );
-
-                      if (notifications.length > 0) {
-                        // Send the notification to the client
-                        socket.emit('new-notification', notifications[0]);
-                        console.log(`Sent due soon notification for task ${task.id} to user ${userId}`);
-                      }
-                    }
-                  } else {
-                    console.log(`Due soon notification for task ${task.id} already exists`);
-                  }
-                } catch (error) {
-                  console.error(`Error creating due soon notification for task ${task.id}:`, error);
-                }
-              }
-            }
-          } else {
-            console.error('Failed to fetch tasks for due soon check:', await response.text());
-          }
-        } catch (error) {
-          console.error('Error in check-past-due-tasks handler:', error);
-        }
-  });
 });
 
 function trackNotification(notificationId) {
@@ -337,46 +243,6 @@ async function checkForNewNotifications() {
 
   // Schedule the next check, using a shorter interval help catch updates faster
   setTimeout(checkForNewNotifications, POLL_INTERVAL / 2);
-}
-
-// Function to check for tasks due soon
-async function checkDueSoonTasks() {
-  try {
-    console.log('Checking for tasks due soon...');
-
-    // Create a date for tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowFormatted = tomorrow.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-
-    const response = await fetch(`${process.env.API_BASE_URL}/tasks/check-due-soon`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      }
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log(`Checked for tasks due soon: ${result.data?.notifications_sent || 0}`);
-    } else {
-      console.error('Failed to check for tasks due soon:', await response.text());
-    }
-  } catch (error) {
-    console.error('Error checking for tasks due soon:', error);
-  }
-
-  // Schedule the next check for tomorrow at 9AM
-  const now = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM
-
-  const timeUntilNextCheck = tomorrow - now;
-  console.log(`Next due date check scheduled for ${tomorrow.toLocaleString()}`);
-
-  setTimeout(checkDueSoonTasks, timeUntilNextCheck);
 }
 
 // API route for direct notification delivery
@@ -535,43 +401,6 @@ app.post('/task-assigned', async (req, res) => {
   }
 });
 
-// Routes to check past due tasks on demand
-app.post('/check-past-due-tasks', async (req, res) => {
-  try {
-    const { check_date } = req.body;
-    
-    if (!check_date) {
-      return res.status(400).json({ error: 'Missing check_date parameter' });
-    }
-    
-    // Call the API to check for tasks due soon
-    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:8080'}/tasks/check-due-soon`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log(`Checked for tasks due soon: ${result.data?.notifications_sent || 0} notification(s) sent.`);
-      res.status(200).json({ 
-        success: true, 
-        message: 'Due soon tasks checked',
-        notifications_sent: result.data?.notifications_sent || 0
-      });
-    } else {
-      console.error('Failed to check for tasks due soon:', await response.text());
-      res.status(500).json({ error: 'Failed to check for tasks due soon' });
-    }
-  } catch (error) {
-    console.error('Error checking for tasks due soon:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
 // Basic health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -598,8 +427,6 @@ app.get('/connected-users', (req, res) => {
     count: users.length
   });
 });
-
-
 
 // Handle 404 for any other routes
 app.use((req, res) => {
@@ -652,4 +479,3 @@ process.on('SIGINT', () => {
 
 // Start the application
 startServer();
-checkDueSoonTasks();
