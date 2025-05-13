@@ -233,51 +233,89 @@ class TasksController extends BaseController
         if (!$oldTask) {
             return $this->respondWithJson(false, "Task not found", null, 404);
         }
-        //Check if user assignment is changing
-        $userChanged = isset($input->user_id) && $oldTask['user_id'] != $input->user_id;
+
+        // Check which fields are being updated and track changes
+        $changes = [];
+
+        if (isset($input->user_id) && $oldTask['user_id'] != $input->user_id) {
+            $changes['user_id'] = [
+                'old' => $oldTask['user_id'],
+                'new' => $input->user_id
+            ];
+            $data['user_id'] = $input->user_id;
+        }
+
+        if (isset($input->title) && $oldTask['title'] != $input->title) {
+            $changes['title'] = [
+                'old' => $oldTask['title'],
+                'new' => $input->title
+            ];
+            $data['title'] = $input->title;
+        }
+
+        if (isset($input->description) && $oldTask['description'] != $input->description) {
+            $changes['description'] = [
+                'old' => $oldTask['description'],
+                'new' => $input->description
+            ];
+            $data['description'] = $input->description;
+        }
+
+        if (isset($input->due_date) && $oldTask['due_date'] != $input->due_date) {
+            $changes['due_date'] = [
+                'old' => $oldTask['due_date'],
+                'new' => $input->due_date
+            ];
+            $data['due_date'] = $input->due_date;
+        }
+
+        if (isset($input->status)) {
+            $allowedStatuses = ['pending', 'in-progress', 'completed', 'request-extension'];
+            if (in_array($input->status, $allowedStatuses)) {
+                if ($oldTask['status'] != $input->status) {
+                    $changes['status'] = [
+                        'old' => $oldTask['status'],
+                        'new' => $input->status
+                    ];
+                    $data['status'] = $input->status;
+                }
+            } else {
+                return $this->respondWithJson(
+                    false,
+                    "Invalid status value. Allowed values are: pending, in-progress, completed, request-extension",
+                    null,
+                    400
+                );
+            }
+        }
+
+        if (isset($input->priority) && $oldTask['priority'] != $input->priority) {
+            $changes['priority'] = [
+                'old' => $oldTask['priority'],
+                'new' => $input->priority
+            ];
+            $data['priority'] = $input->priority;
+        }
+
+        // If no changes, return early
+        if (empty($data)) {
+            return $this->respondWithJson(true, "No changes to update", $oldTask);
+        }
+
+        // Remember if user assignment changed
+        $userChanged = isset($changes['user_id']);
         $oldUserId = $oldTask['user_id'];
+
         // Start transaction
         $db = \Config\Database::connect();
         $db->transBegin();
-        
-        try {
-            if (isset($input->user_id)){
-                $data['user_id'] = $input->user_id;
-            }
-    
-            if (isset($input->title)){
-                $data['title'] = $input->title;
-            }
-            if (isset($input->description)){
-                $data['description'] = $input->description;
-            }
-            if (isset($input->due_date)){
-                $data['due_date'] = $input->due_date;
-            }
-            if (isset($input->status)){
-                $allowedStatuses = ['pending', 'in-progress', 'completed', 'request-extension'];
-                if (in_array($input->status, $allowedStatuses)){
-                    $data['status'] = $input->status;
-                } else {
-                    return $this->respondWithJson(
-                        false,
-                        "Invalid status value. Allowed values are: pending, in-progress, completed, request-extension",
-                        null,
-                        400
-                    );
-                }
-            }
-            if (isset($input->priority)){
-                $data['priority'] = $input->priority;
-            }
-             // Check if user assignment is changing
-            $userChanged = isset($data['user_id']) && $oldTask['user_id'] != $data['user_id'];
 
-            // Update the task first
+        try {
+            // Update the task
             if ($this->tasksModel->update($id, $data)) {
                 $updatedTask = $this->tasksModel->find($id);
-
-                // Only if user assignment changed, send notification
+                
+                // Handle notifications for different types of changes
                 if ($userChanged) {
                     log_message('info', "User assignment changed for task {$id} from {$oldTask['user_id']} to {$data['user_id']}");
 
@@ -289,6 +327,38 @@ class TasksController extends BaseController
                         $this->createTaskNotification($updatedTask, 'assignment');
                     } else if ($input->user_id > 0) {
                         $this->createTaskNotification($updatedTask, 'assignment');
+                    }
+                }
+                // Handle other specific notifications if user didn't change
+                else {
+                    // Status change notification
+                    if (isset($changes['status'])) {
+                        $this->createTaskNotification($updatedTask, 'status_update', [
+                            'new_status' => $changes['status']['new'],
+                            'old_status' => $changes['status']['old']
+                        ]);
+                    }
+
+                    // Priority change notification
+                    if (isset($changes['priority'])) {
+                        $this->createTaskNotification($updatedTask, 'priority_update', [
+                            'new_priority' => $changes['priority']['new'],
+                            'old_priority' => $changes['priority']['old']
+                        ]);
+                    }
+
+                    // Due date change notification
+                    if (isset($changes['due_date'])) {
+                        $this->createTaskNotification($updatedTask, 'due_date_update', [
+                            'new_due_date' => $changes['due_date']['new'],
+                            'old_due_date' => $changes['due_date']['old']
+                        ]);
+                    }
+
+                    // If only title or description changed, send general update notification
+                    if ((isset($changes['title']) || isset($changes['description'])) && 
+                        !isset($changes['status']) && !isset($changes['priority']) && !isset($changes['due_date'])) {
+                        $this->createTaskNotification($updatedTask, 'update');
                     }
                 }
 
@@ -341,19 +411,39 @@ class TasksController extends BaseController
                 403,
             );
         }
+        // Store old status for notification purposes
+        $oldStatus = $task['status'];
+
         try {
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
             if ($this->tasksModel->update($id, ['status' => $input->status])){
                 $updatedTask = $this->tasksModel->find($id);
                 // Add isAssignedToYou if user_id is provided
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
                 }
+                // Only create notification if status actually changed
+                if ($oldStatus != $input->status) {
+                    // Create notification for status update
+                    $this->createTaskNotification($updatedTask, 'status_update', [
+                        'new_status' => $input->status,
+                        'old_status' => $oldStatus
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task status updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task status", $errors, 400);
             }
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -420,19 +510,40 @@ class TasksController extends BaseController
                 403,
             );
         }
+
+        // Store old priority for notification purpose
+        $oldPriority = $task['priority'];
+
         try {
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
             if ($this->tasksModel->update($id, ['priority' => $input->priority])){
                 $updatedTask = $this->tasksModel->find($id);
                 // Add isAssignedToYou flag ig user_id is provided
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
                 }
+                // Only create notification if priority actually changed
+                if ($oldPriority != $input->priority) {
+                    // Create notification for priority update
+                    $this->createTaskNotification($updatedTask, 'priority_update', [
+                        'new_priority' => $input->priority,
+                        'old_priority' => $oldPriority
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task priority updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task priority", $errors, 400);
             }
         } catch (\Exception $e){
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error",$e->getMessage(), 500);
         }
     }
@@ -476,15 +587,24 @@ class TasksController extends BaseController
                     403
                 );
             }
+            // Store old progress for notification purposes
+            $oldProgress = $task['progress'] ?? 0;
 
             $data = ['progress' => $progress];
+            $statusChanged = false;
+            $oldStatus = $task['status'];
 
             // Auto-update status based on progress if needed
             if($progress == 100 && $task['status'] != 'completed') {
                 $data['status'] = 'completed';
+                $statusChanged = true;
             } elseif ($progress > 0 && $progress < 100 && $task['status'] == 'pending') {
                 $data['status'] = 'in-progress';
+                $statusChanged = true;
             }
+
+            $db = \Config\Database::connect();
+            $db->transBegin();
 
             if ($this->tasksModel->update($id, $data)) {
                 $updatedTask = $this->tasksModel->find($id);
@@ -492,12 +612,26 @@ class TasksController extends BaseController
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
                 }
+                // Create a separate notification if status was auto-updated
+                if ($statusChanged) {
+                    $this->createTaskNotification($updatedTask, 'status_update', [
+                        'new_status' => $data['status'],
+                        'old_status' => $oldStatus,
+                        'auto_updated' => true
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task progress updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task progress", $errors, 400);
             }
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -808,16 +942,36 @@ class TasksController extends BaseController
             $title = "";
             $message = "";
 
-            switch ($notificationType) {
+        switch ($notificationType) {
                 case 'assignment':
                     $title = "Task Assigned";
                     $message = "You have been assigned to task: {$task['title']}. Please check your tasks for details.";
+                    break;
+                case 'status_update':
+                    $newStatus = $additionalData['new_status'] ?? 'unknown';
+                    $title = "Task Status Updated";
+                    $message = "Status for task '{$task['title']}' has been updated to '{$newStatus}'.";
+                    break;
+                case 'priority_update':
+                    $newPriority = $additionalData['new_priority'] ?? 'unknown';
+                    $title = "Task Priority Updated";
+                    $message = "Priority for task '{$task['title']}' has been changed to '{$newPriority}'.";
+                    break;
+                case 'progress_update':
+                    $newProgress = $additionalData['new_progress'] ?? 0;
+                    $title = "Task Progress Updated";
+                    $message = "Progress for task '{$task['title']}' has been updated to {$newProgress}%.";
+                    break;
+                case 'due_date_update':
+                    $newDueDate = $additionalData['new_due_date'] ?? 'not set';
+                    $formattedDate = $newDueDate != 'not set' ? date('M d, Y', strtotime($newDueDate)) : 'not set';
+                    $title = "Task Due Date Updated";
+                    $message = "Due date for task '{$task['title']}' has been updated to {$formattedDate}.";
                     break;
                 case 'update':
                     $title = "Task Updated";
                     $message = "Task '{$task['title']}' has been updated. Please check for changes.";
                     break;
-
             }
 
             // Start transaction
