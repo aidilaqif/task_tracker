@@ -58,8 +58,22 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
       final response = await _apiService.updateTaskProgress(_task.id, progress, userId);
 
       if (response['status']) {
+        final updatedTask = Task.fromJson(response['data']);
         setState(() {
-          _task = Task.fromJson(response['data']);
+          _task = Task(
+            id: updatedTask.id,
+            userId: updatedTask.userId,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            dueDate: updatedTask.dueDate,
+            status: updatedTask.status,
+            priority: updatedTask.priority,
+            progress: updatedTask.progress,
+            createdAt: updatedTask.createdAt,
+            updatedAt: updatedTask.updatedAt,
+            isAssignedToYou: _task.isAssignedToYou,
+            assignedTo: _task.assignedTo,
+          );
           _progressController.text = _task.progress;
           _isUpdating = false;
         });
@@ -112,10 +126,24 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
     try {
       final userId = int.parse(widget.task.userId.toString());
       final response = await _apiService.updateTaskStatus(_task.id, newStatus, userId);
+      final updatedTask = Task.fromJson(response['data']);
 
       if (response['status']) {
         setState(() {
-          _task = Task.fromJson(response['data']);
+          _task = Task(
+            id: updatedTask.id,
+            userId: updatedTask.userId,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            dueDate: updatedTask.dueDate,
+            status: updatedTask.status,
+            priority: updatedTask.priority,
+            progress: updatedTask.progress,
+            createdAt: updatedTask.createdAt,
+            updatedAt: updatedTask.updatedAt,
+            isAssignedToYou: _task.isAssignedToYou,
+            assignedTo: _task.assignedTo,
+          );
           _isUpdating = false;
         });
 
