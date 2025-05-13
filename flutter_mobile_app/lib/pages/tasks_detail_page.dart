@@ -64,6 +64,13 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
           _isUpdating = false;
         });
 
+        await _apiService.sendNotification(
+          userId,
+          _task.id,
+          "Task Progress Updated",
+          "Progress for task '${_task.title}' updated to: $progress%"
+        );
+
         widget.onTaskUpdated();  // Refresh task list in the background
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -119,6 +126,13 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
           _isUpdating = false;
         });
 
+        await _apiService.sendNotification(
+          userId,
+          _task.id,
+          "Task Status Updated",
+          "Status for task '${_task.title}' changed to: $newStatus"
+        );
+
         widget.onTaskUpdated();  // Refresh task list in the background
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -161,6 +175,7 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
             children: [
               ListTile(
                 title: Text('In Progress'),
+                leading: Icon(Icons.play_arrow, color: AppTheme.inProgressColor),
                 onTap: () {
                   Navigator.pop(context);
                   _updateTaskStatus('in-progress');
@@ -168,6 +183,7 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
               ),
               ListTile(
                 title: Text('Complete'),
+                leading: Icon(Icons.check_circle, color: AppTheme.completedColor),
                 onTap: () {
                   Navigator.pop(context);
                   _updateTaskStatus('completed');
@@ -175,9 +191,10 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
               ),
               ListTile(
                 title: Text('Request Extension'),
+                leading: Icon(Icons.hourglass_empty, color: AppTheme.warningColor),
                 onTap: () {
                   Navigator.pop(context);
-                  _updateTaskStatus('request-extension');
+                  _requestExtension();
                 },
               ),
             ],
@@ -190,6 +207,105 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
           ],
         );
       },
+    );
+  }
+
+  Future<void> _submitExtensionRequest() async {
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final userId = int.parse(widget.task.userId.toString());
+      final response = await _apiService.updateTaskStatus(
+        _task.id, 
+        'request-extension', 
+        userId
+      );
+
+      if (response['status']) {
+        setState(() {
+          _task = Task.fromJson(response['data']);
+          _isUpdating = false;
+        });
+
+        await _apiService.sendNotification(
+          userId,
+          _task.id,
+          "Extension Requested",
+          "An extension was requested for task: ${_task.title}"
+        );
+
+        widget.onTaskUpdated(); // Refresh task list
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Extension request submitted'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      } else {
+        setState(() {
+          _isUpdating = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['msg'] ?? 'Failed to request extension'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUpdating = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error requesting extension: ${e.toString()}'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
+
+  void _requestExtension() {
+    if (!_task.isAssignedToYou) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You cannot update a task that is not assigned to you'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Request Extension', style: AppTheme.titleStyle),
+        content: Text(
+          'Are you sure you want to request an extension for this task?',
+          style: AppTheme.bodyStyle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _submitExtensionRequest();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.warningColor,
+            ),
+            child: Text('Request Extension'),
+          ),
+        ],
+      ),
     );
   }
 

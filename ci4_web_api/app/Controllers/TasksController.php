@@ -332,6 +332,8 @@ class TasksController extends BaseController
         if (!$task) {
             return $this->respondWithJson(false, "Task not found", null, 404);
         }
+        // Get old status for comparison
+        $oldStatus = $task['status'];
         // Check if the requesting user is assigned to this task
         if ($requestingUserId && $requestingUserId != $task['user_id']) {
             return $this->respondWithJson(
@@ -347,6 +349,18 @@ class TasksController extends BaseController
                 // Add isAssignedToYou if user_id is provided
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
+                }
+                // Only send notification if status actually changed
+                if ($oldStatus != $input->status) {
+                    // Send notification for status change
+                    $this->createTaskNotification($updatedTask, 'status_change');
+                    // Special case for extension requests and responses
+                    if ($input->$status == 'request-extension') {
+                        // Notify admin/manager about extension request - soon be implemented
+                    } else if ($oldStatus == 'request-extension' && $input->status != 'request-extension') {
+                        $approved = ($input->status != 'completed');
+                        $this->createTaskNotification($updatedTask, 'extension_response', ['approved' => $approved]);
+                    }
                 }
                 return $this->respondWithJson(true, "Task status updated successfully", $updatedTask);
             } else {
@@ -411,6 +425,10 @@ class TasksController extends BaseController
         if (!$task) {
             return $this->respondWithJson(false, "Task not found", null, 404);
         }
+
+        // Get old priority for comparison
+        $oldPriority = $task['priority'];
+
         // Check if requesting user is assigned to this task
         if ($requestingUserId && $requestingUserId != $task['user_id']) {
             return $this->respondWithJson(
@@ -426,6 +444,10 @@ class TasksController extends BaseController
                 // Add isAssignedToYou flag ig user_id is provided
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
+                }
+                // Only send notification if priority actually changed
+                if ($oldPriority != $input->priority) {
+                    $this->createTaskNotification($updatedTask, 'priority_change');
                 }
                 return $this->respondWithJson(true, "Task priority updated successfully", $updatedTask);
             } else {
@@ -608,6 +630,75 @@ class TasksController extends BaseController
 
             // Return the statistics
             return $this->respondWithJson(true, "Task completion statistic retrieved successfully", $stats);
+        } catch (\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+    public function checkTasksDueSoon()
+    {
+        // Get tomorrow's data
+        $tomorrow = date('Y-m-d', strtotime('+1 day'));
+        // Find tasks due tomorrow that aren't completed
+        $dueSoonTasks = $this->tasksModel->where('due_date LIKE', $tomorrow.'%')
+                                    ->where('status !=', 'completed')
+                                    ->findAll();
+        $notificationCount = 0;
+
+        foreach ($dueSoonTasks as $task) {
+            // Create due soon notification
+            if ($this->createTaskNotification($task, 'due_soon')) {
+                $notificationCount++;
+            }
+        }
+
+        return $this->respondWithJson(
+            true,
+            "Checked for tasks due soon. Sent {$notificationCount} notifications.",
+            ['tasks_check' => count($dueSoonTasks), 'notifications_sent' => $notificationCount]
+        );
+    }
+    public function respondToExtensionRequest($taskId)
+    {
+        $input = $this->request->getJSON();
+
+        if (!isset($input->approved)) {
+            return $this->respondWithJson(false, "Approved field is required", null, 400);
+        }
+
+        // Get the task
+        $task = $this->tasksModel->find($taskId);
+        if (!$task) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
+        }
+
+        // Check if task has extension request
+        if ($task['status'] !== 'request-extension') {
+            return $this->respondWithJson(false, "Task does not have a pending extension request", null, 400);
+        }
+
+        try {
+            // Update task status based on approval
+            $newStatus = $input->approved ? 'in-progress' : 'pending';
+
+            if ($this->tasksModel->update($taskId, ['status' => $newStatus])) {
+                $updatedTask = $this->tasksModel->find($taskId);
+
+                // Send notification about extension response
+                $this->createTaskNotification(
+                    $updatedTask,
+                    'extension_response',
+                    ['approved' => (bool)$input->approved]
+                );
+
+                return $this->respondWithJson(
+                    true,
+                    "Extension request " . ($input->approved ? "approved" : "denied"),
+                    $updatedTask
+                );
+            } else {
+                $errors = $this->tasksModel->errors();
+                return $this->respondWithJson(false, "Failed to update task status", $errors, 400);
+            }
         } catch (\Exception $e) {
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
@@ -817,7 +908,26 @@ class TasksController extends BaseController
                     $title = "Task Updated";
                     $message = "Task '{$task['title']}' has been updated. Please check for changes.";
                     break;
-
+                case 'status_change':
+                    $title = "Task Status Updated";
+                    $message = "Task '{$task['title']}' status changed to: {$statusLabel}";
+                    break;
+                case 'due_soon':
+                    $title = "Task Due Soon";
+                    $message = "Task '{$task['title']}' is due soon. Please complete it before the deadline.";
+                    break;
+                case 'extension_response':
+                    $approved = $extraData['approved'] ?? false;
+                    $title = "Extension Request Response";
+                    $message = $approved 
+                        ? "Your extension request for task {$task['title']} has been approved."
+                        : "Your extension request for task {$task['title']} has been denied.";
+                    break;
+                case 'priority_change':
+                    $title = "Task Priority Change";
+                    $priorityLabel = ucfirst($task['priority']);
+                    $message = "Task '{$task['title']}' priority has been changed to: {$priorityLabel}.";
+                    break;
             }
 
             // Start transaction
@@ -881,6 +991,21 @@ class TasksController extends BaseController
             }
             log_message('error', "Failed to create task notification: " . $e->getMessage());
             return false;
+        }
+    }
+    private function getStatusLabel($status)
+    {
+        switch ($status) {
+            case 'pending':
+                return 'Pending';
+            case 'in-progress':
+                return 'In Progress';
+            case 'completed':
+                return 'Completed';
+            case 'request-extension':
+                return 'Extension Requested';
+            default:
+                return ucfirst($status);
         }
     }
     private function respondWithJson($status, $msg, $data = null, $statusCode=200)

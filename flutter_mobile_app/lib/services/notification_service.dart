@@ -175,6 +175,32 @@ class NotificationService {
     _notificationStreamController.close();
   }
 
+  void checkPastDueTasks(Function(Map<String, dynamic>) onTaskDueSoon) {
+    debugPrint('Checking for past due tasks...');
+
+    final now = DateTime.now();
+    final tomorrow = now.add(Duration(days: 1));
+
+    _socket?.emit('check-past-due-tasks', {
+      'check_date': tomorrow.toIso8601String()
+    });
+
+    // Listen for response
+    _socket?.on('due-soon-tasks', (data) {
+      debugPrint('Received due soon tasks from server: $data');
+
+      if (data is List) {
+        for (var task in data) {
+          if (task != null && task is Map<String, dynamic>) {
+            onTaskDueSoon(task);
+          }
+        }
+      } else if (data is Map<String, dynamic>) {
+        onTaskDueSoon(data);
+      }
+    });
+  }
+
   // Mark notification as read
   Future<void> markNotificationAsRead(int notificationId) async {
     _socket?.emit('notification-read', {'notificationId': notificationId});

@@ -7,6 +7,14 @@
             <small>(<?= session()->get('role') ?>)</small>
         </div>
         <?php endif; ?>
+        <div class="user-actions">
+            <?php if(session()->get('isLoggedIn')): ?>
+            <div id="notificationBadge" class="notification-badge">
+                <i class="fas fa-bell"></i>
+                <span id="notificationCount" class="notification-count">0</span>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
     <ul class="sidebar-menu">
         <li class="<?= ($active_menu ?? '') == 'dashboard' ? 'active' : '' ?>">

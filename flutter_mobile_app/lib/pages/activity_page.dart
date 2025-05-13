@@ -341,9 +341,33 @@ class _ActivityPageState extends State<ActivityPage> {
         final isProcessing = notification['processing'] == true;
         final dateTime = DateTime.parse(notification['created_at']);
         final formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
-        final bool isTaskAssignment =
-          notification['title'] == 'Task Assigned' ||
-          notification['title'].toLowerCase().contains('assigned');
+        // final bool isTaskAssignment =
+        //   notification['title'] == 'Task Assigned' ||
+        //   notification['title'].toLowerCase().contains('assigned');
+        IconData notificationIcon;
+        Color iconColor;
+
+        final title = notification['title']?.toLowerCase() ?? '';
+
+        if (title.contains('assigned')) {
+          notificationIcon = Icons.assignment_outlined;
+          iconColor = AppTheme.primaryColor;
+        } else if (title.contains('status')) {
+          notificationIcon = Icons.sync_alt;
+          iconColor = AppTheme.infoColor;
+        } else if (title.contains('due soon')) {
+          notificationIcon = Icons.access_time;
+          iconColor = AppTheme.warningColor;
+        } else if (title.contains('priority')) {
+          notificationIcon = Icons.priority_high;
+          iconColor = AppTheme.errorColor;
+        } else if (title.contains('extension')) {
+          notificationIcon = Icons.hourglass_empty;
+          iconColor = AppTheme.pendingColor;
+        } else {
+          notificationIcon = Icons.notifications_outlined;
+          iconColor = AppTheme.primaryColor;
+        }
 
         return Card(
           margin: EdgeInsets.only(bottom: AppTheme.spacingMd),
@@ -362,13 +386,12 @@ class _ActivityPageState extends State<ActivityPage> {
                 children: [
                   Row(
                     children: [
-                      if (isTaskAssignment)
-                        Icon(
-                          Icons.assignment_outlined,
-                          color: AppTheme.primaryColor,
-                          size: 20,
-                        ),
-                      SizedBox(width: isTaskAssignment ? AppTheme.spacingSm : 0),
+                      Icon(
+                        notificationIcon,
+                        color: iconColor,
+                        size: 20,
+                      ),
+                      SizedBox(width: AppTheme.spacingSm),
                       Expanded(
                         child: Text(
                           notification['title'] ?? 'Notification',
@@ -448,7 +471,7 @@ class _ActivityPageState extends State<ActivityPage> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppTheme.borderRadiusSm),
                           ),
                           child: Text(

@@ -40,6 +40,23 @@
     </script>
 </head>
 <body>
+    <!-- Notification Overlay -->
+    <div id="notificationOverlay" class="notification-overlay"></div>
+    <div id="toastContainer" class="toast-container"></div>
+    <div id="notificationPanel" class="notification-panel">
+        <div class="notification-header">
+            <h3>Notifications</h3>
+            <button id="markAllReadBtn" class="mark-all-read">Mark All Read</button>
+        </div>
+        <div id="notificationList" class="notification-list">
+            <!-- Notifications will be loaded here -->
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Include Sidebar -->
     <?= $this->include('sidebar') ?>
 
@@ -69,5 +86,12 @@
             </div>
         </main>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js"></script>
+    <script>
+        // Configuration
+        const NOTIFICATION_SERVER_URL = '<?= getenv('NOTIFICATION_SERVER_URL')?>';
+        const CURRENT_USER_ID = <?= session()->get('user_id') ?: 'null' ?>;
+    </script>
+    <script src="<?= base_url('assets/js/notifications.js') ?>"></script>
 </body>
 </html>

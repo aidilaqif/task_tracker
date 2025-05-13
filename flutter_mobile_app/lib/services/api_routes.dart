@@ -29,6 +29,7 @@ class ApiRoutes {
   // Notifications
   static String getNotifications(int userId) => '$baseUrl/notifications/user/$userId';
   static String markNotificationAsRead(int notificationId) => '$baseUrl/notifications/read/$notificationId';
+  static String sendNotification = '$baseUrl/notifications/task';
 }
 
 
