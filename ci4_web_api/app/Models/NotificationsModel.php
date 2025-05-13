@@ -12,7 +12,7 @@ class NotificationsModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['user_id', 'task_id', 'title', 'message', 'is_read'];
+    protected $allowedFields    = ['user_id', 'task_id', 'title', 'message', 'is_read', 'type'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -35,7 +35,8 @@ class NotificationsModel extends Model
         'task_id' => 'permit_empty|integer',
         'title' => 'required|max_length[255]',
         'message' => 'required',
-        'is_read' => 'permit_empty|in_list[0,1]'
+        'is_read' => 'permit_empty|in_list[0,1]',
+        'type' => 'permit_empty|max_length[50]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

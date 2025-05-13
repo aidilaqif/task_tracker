@@ -75,6 +75,8 @@ class NotificationsController extends BaseController
             return $this->respondWithJson(false, "User ID, Task ID, Title and Message are required", null, 400);
         }
 
+        $type = $input->type ?? 'general';
+
         // Verify that the user exists
         $user = $this->usersModel->find($input->user_id);
         if (!$user) {
@@ -109,7 +111,8 @@ class NotificationsController extends BaseController
                 'task_id' => $input->task_id,
                 'title' => $input->title,
                 'message' => $input->message,
-                'is_read' => false
+                'is_read' => false,
+                'type' => $type,
             ];
 
             if ($this->notificationsModel->insert($data)) {
@@ -262,6 +265,7 @@ class NotificationsController extends BaseController
                 'task_id' => (int)$task['id'],
                 'title' => $notification['title'],
                 'message' => $notification['message'],
+                'type' => $notification['type'] ?? 'general',
                 'is_read' => false
             ];
             

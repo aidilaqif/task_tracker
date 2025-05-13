@@ -349,10 +349,20 @@ class TasksController extends BaseController
 
                     // Due date change notification
                     if (isset($changes['due_date'])) {
-                        $this->createTaskNotification($updatedTask, 'due_date_update', [
-                            'new_due_date' => $changes['due_date']['new'],
-                            'old_due_date' => $changes['due_date']['old']
-                        ]);
+                        // Compare old and new values, only notify if actually different
+                        $oldDueDate = $changes['due_date']['old'];
+                        $newDueDate = $changes['due_date']['new'];
+                        
+                        // Format dates for comparison if not null
+                        $oldFormatted = $oldDueDate ? date('Y-m-d', strtotime($oldDueDate)) : null;
+                        $newFormatted = $newDueDate ? date('Y-m-d', strtotime($newDueDate)) : null;
+                        
+                        if ($oldFormatted !== $newFormatted) {
+                            $this->createTaskNotification($updatedTask, 'due_date_update', [
+                                'new_due_date' => $newDueDate,
+                                'old_due_date' => $oldDueDate
+                            ]);
+                        }
                     }
 
                     // If only title or description changed, send general update notification
@@ -926,7 +936,7 @@ class TasksController extends BaseController
         }
     }
     // Centralize Notification Creation
-    private function createTaskNotification($task, $notificationType)
+    private function createTaskNotification($task, $notificationType, $additionalData = [])
     {
         try {
             // Get user data
@@ -941,36 +951,43 @@ class TasksController extends BaseController
             // Setup notification data based on type
             $title = "";
             $message = "";
+            $type = "";
 
         switch ($notificationType) {
                 case 'assignment':
                     $title = "Task Assigned";
                     $message = "You have been assigned to task: {$task['title']}. Please check your tasks for details.";
+                    $type = "assignment";
                     break;
                 case 'status_update':
                     $newStatus = $additionalData['new_status'] ?? 'unknown';
                     $title = "Task Status Updated";
                     $message = "Status for task '{$task['title']}' has been updated to '{$newStatus}'.";
+                    $type = "status";
                     break;
                 case 'priority_update':
                     $newPriority = $additionalData['new_priority'] ?? 'unknown';
                     $title = "Task Priority Updated";
                     $message = "Priority for task '{$task['title']}' has been changed to '{$newPriority}'.";
+                    $type="priority";
                     break;
                 case 'progress_update':
                     $newProgress = $additionalData['new_progress'] ?? 0;
                     $title = "Task Progress Updated";
                     $message = "Progress for task '{$task['title']}' has been updated to {$newProgress}%.";
+                    $type = "progress";
                     break;
                 case 'due_date_update':
                     $newDueDate = $additionalData['new_due_date'] ?? 'not set';
                     $formattedDate = $newDueDate != 'not set' ? date('M d, Y', strtotime($newDueDate)) : 'not set';
                     $title = "Task Due Date Updated";
                     $message = "Due date for task '{$task['title']}' has been updated to {$formattedDate}.";
+                    $type = "due_data";
                     break;
                 case 'update':
                     $title = "Task Updated";
                     $message = "Task '{$task['title']}' has been updated. Please check for changes.";
+                    $type = "general";
                     break;
             }
 
@@ -1001,7 +1018,8 @@ class TasksController extends BaseController
                 'task_id' => $task['id'],
                 'title' => $title,
                 'message' => $message,
-                'is_read' => false
+                'is_read' => false,
+                'type' => $type,
             ];
 
             // Insert notification

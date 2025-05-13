@@ -26,6 +26,24 @@ const dbConfig = {
 const processedNotifications = new Set();
 const MAX_TRACKED_NOTIFICATIONS = 1000;
 
+// Helper function to infer notification type from title
+function infer_notification_type(title) {
+  title = title.toLowerCase();
+  if (title.includes('assigned')) {
+    return 'assignment';
+  } else if (title.includes('status')) {
+    return 'status';
+  } else if (title.includes('priority')) {
+    return 'priority';
+  } else if (title.includes('progress')) {
+    return 'progress';
+  } else if (title.includes('due date')) {
+    return 'due_date';
+  } else {
+    return 'general';
+  }
+}
+
 // Initialize Express app
 const app = express();
 app.use(cors());
@@ -149,7 +167,16 @@ async function sendUnreadNotifications(userId) {
     
     if (rows.length > 0) {
       console.log(`Sending ${rows.length} unread notifications to user ${userId}`);
-      
+
+       // Process each notification to ensure it has a type
+      const processedRows = rows.map(notification => {
+        // If notification doesn't have a type, infer it from the title
+        if (!notification.type) {
+          notification.type = infer_notification_type(notification.title || '');
+        }
+        return notification;
+      });
+
       // Send all unread notifications in a batch
       io.to(`user-${userId}`).emit('unread-notifications', rows);
       
@@ -221,6 +248,10 @@ async function checkForNewNotifications() {
 
             // Send each notification individually for immediate delivery
             for (const notification of notifications) {
+              // Ensure notification has a type
+              if (!notification.type) {
+                notification.type = infer_notification_type(notification.title || '');
+              }
               console.log(`Emitting notification ${notification.id} to user ${userId}`);
 
               // Send directly to the user's socket
@@ -250,7 +281,7 @@ app.post('/send-notification', async (req, res) => {
   try {
     // console.log('Received notification request:', req.body);
     
-    const { notification_id, user_id, task_id, title, message } = req.body;
+    const { notification_id, user_id, task_id, title, message, type } = req.body;
     
     if (!notification_id || !user_id) {
       console.error('Missing required fields in notification request:', req.body);
@@ -272,6 +303,7 @@ app.post('/send-notification', async (req, res) => {
       title: title || '',
       message: message || '',
       is_read: false,
+      type: type || infer_notification_type(title || ''),
       created_at: new Date().toISOString()
     };
     
@@ -285,6 +317,7 @@ app.post('/send-notification', async (req, res) => {
       if (existingNotifications.length > 0) {
         console.log(`Found notification ${notificationId} in database`);
         notificationFromRequest.created_at = existingNotifications[0].created_at;
+        notificationFromRequest.type = existingNotifications[0].type || notificationFromRequest.type;
       } else {
         console.log(`Notification ${notificationId} not found in database - will use request data`);
       }
@@ -353,8 +386,8 @@ app.post('/task-assigned', async (req, res) => {
     
     // Insert notification into database
     const [result] = await pool.query(`
-      INSERT INTO notifications (user_id, task_id, title, message, is_read)
-      VALUES (?, ?, ?, ?, 0)
+      INSERT INTO notifications (user_id, task_id, title, message, is_read, type)
+      VALUES (?, ?, ?, ?, 0, 'assignment')
     `, [user_id, task_id, 'Task Assigned', `You have been assigned to task: ${task_title}`]);
     
     // Get the inserted notification
