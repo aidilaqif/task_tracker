@@ -46,6 +46,9 @@ $routes->put('tasks/priority/(:num)', 'TasksController::updateTaskPriority/$1');
 $routes->put('tasks/progress/(:num)', 'TasksController::updateTaskProgress/$1');
 $routes->get('tasks/stats', 'TasksController::getTaskCompletionStats');
 
+// dashboard related route
+$routes->get('tasks/dashboard-metrics', 'TasksController::getDashboardMetrics');
+
 // team route
 $routes->get('teams','TeamController::getAllTeams');
 $routes->get('teams/with-count','TeamController::getTeamsWithMemberCount');

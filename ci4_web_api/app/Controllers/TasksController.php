@@ -756,6 +756,42 @@ class TasksController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+    // Get Dashboard metrics function
+    public function getDashboardMetrics()
+    {
+        try {
+            $db = \Config\Database::connect();
+            $metrics = [];
+
+            // Get total tasks and status breakdown
+            $builder = $db->table('tasks');
+            $builder->select('COUNT(*) as total_tasks');
+            $totalTasks = $builder->get()->getRow()->total_tasks;
+
+            // Get status breakdown
+            $builder = $db->table('tasks');
+            $builder->select('status, COUNT(*) as count');
+            $builder->groupBy('status');
+            $statusBreakdown = $builder->get()->getResultArray();
+
+            // Add priority breakdown
+            $builder = $db->table('tasks');
+            $builder->select('priority, COUNT(*) as count');
+            $builder->groupBy('priority');
+            $priorityBreakdown = $builder->get()->getResultArray();
+
+            // Format the results
+            $metrics['tasks'] = [
+                'total' => (int)$totalTasks,
+                'status_breakdown' => $statusBreakdown,
+                'priority_breakdown' => $priorityBreakdown
+            ];
+
+            return $this->respondWithJson(true, "Dashboard metrics retrieved successfully", $metrics);
+        } catch(\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
     private function createReassignmentNotification($oldTask, $newUserId)
     {
         try {

@@ -20,7 +20,7 @@ class WebUIController extends BaseController
     public function dashboard()
     {
         $data['active_menu'] = 'dashboard';
-        $data['css_files'] = [];
+        $data['css_files'] = ['dashboard'];
         $data['title'] = 'Dashboard';
         
         // Pass user data to the view if needed
