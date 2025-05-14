@@ -92,7 +92,21 @@
                 </div>
             </div>
         </div>
-        
+        <!-- Overdue Tasks -->
+        <div class="metric-card" id="overdue-tasks-card">
+            <h3>Overdue Tasks</h3>
+            <div class="total" id="overdue-count">-</div>
+            <p>Tasks Past Due Date</p>
+
+            <div class="overdue-tasks-list" id="overdue-tasks-list">
+                <div class="loading-spinner">Loading overdue tasks...</div>
+            </div>
+
+            <!-- Link to view all overdue tasks if needed -->
+            <div class="view-all-link" id="view-all-overdue" style="display: none;">
+                <a href="/task?status=overdue">View All Overdue Tasks</a>
+            </div>
+        </div>
         <!-- More metric cards will be added for the other dashboard features -->
     </div>
 </div>
@@ -205,7 +219,11 @@
         document.getElementById('in-progress-count').textContent = '-';
         document.getElementById('completed-count').textContent = '-';
         document.getElementById('extension-count').textContent = '-';
-        
+
+        // Loading state for overdue tasks
+        document.getElementById('overdue-count').textContent = '-';
+        document.getElementById('overdue-tasks-list').innerHTML = '<div class="loading-spinner">Loading overdue tasks...</div>';
+
         // Clear chart
         document.getElementById('tasks-chart').innerHTML = '';
         document.getElementById('priority-donut-chart').innerHTML = `
@@ -214,12 +232,14 @@
                 <div class="donut-text-label">Tasks</div>
             </div>
         `;
-        
+
         // Also show loading for priority counts
         document.getElementById('high-priority-count').textContent = '-';
         document.getElementById('medium-priority-count').textContent = '-';
         document.getElementById('low-priority-count').textContent = '-';
-        
+
+
+
         // Fetch dashboard metrics from API
         fetch('/tasks/dashboard-metrics')
             .then(response => {
@@ -233,18 +253,25 @@
                     // Update task metrics
                     updateTaskMetrics(data.data.tasks);
                     
-                    // NEW: Update priority distribution
+                    // Update priority distribution
                     updatePriorityDistribution(data.data.tasks);
+
+                    // Update overdue tasks
+                    updateOverdueTasks(data.data);
                 } else {
                     console.error('Failed to load dashboard metrics:', data.msg);
                     document.getElementById('total-tasks').textContent = 'Error loading data';
                     document.getElementById('priority-chart-total').textContent = 'Error';
+                    document.getElementById('overdue-count').textContent = 'Error';
+                    document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
                 }
             })
             .catch(error => {
                 console.error('Error loading dashboard metrics:', error);
                 document.getElementById('total-tasks').textContent = 'Error loading data';
                 document.getElementById('priority-chart-total').textContent = 'Error';
+                document.getElementById('overdue-count').textContent = 'Error';
+                document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
             });
     }
     
@@ -427,12 +454,91 @@
             `;
         }
     }
+    function updateOverdueTasks(dashboardData) {
+        // Get overdue tasks data
+        const overdueData = dashboardData.overdue_tasks;
+        const count = overdueData ? overdueData.count : 0;
+
+        // Update count in the UI
+        document.getElementById('overdue-count').textContent = count;
+
+        // Get the container for the list
+        const listContainer = document.getElementById('overdue-tasks-list');
+        listContainer.innerHTML = '';
+
+        // Check if we have any overdue tasks
+        if (count > 0 && overdueData.list && overdueData.list.length > 0) {
+            // Create the table
+            const table = document.createElement('table');
+            table.className = 'overdue-tasks-table';
+
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Task</th>
+                    <th>Assigned To</th>
+                    <th>Days Overdue</th>
+                    <th>Priority</th>
+                    <th></th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            // Create table body
+            const tbody = document.createElement('tbody');
+
+            // Add each overdue task to the table
+            overdueData.list.forEach(task => {
+                const tr = document.createElement('tr');
+
+                // Add task priority class to the row
+                tr.className = `priority-${task.priority}`;
+
+                tr.innerHTML = `
+                    <td class="task-title">${task.title}</td>
+                    <td>${task.assigned_to || 'Unassigned'}</td>
+                    <td class="days-overdue">${task.days_overdue} day${task.days_overdue !== 1 ? 's' : ''}</td>
+                    <td><span class="priority-badge ${task.priority}">${task.priority}</span></td>
+                    <td>
+                        <button class="view-task-btn" data-id="${task.id}">View</button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            listContainer.appendChild(table);
+
+            // Add event listeners to view buttons
+            document.querySelectorAll('.view-task-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const taskId = this.getAttribute('data-id');
+                    window.location.href = `/task_detail?task_id=${taskId}`;
+                });
+            });
+
+            // Show view all link if there are more than shown
+            if (count > overdueData.list.length) {
+                document.getElementById('view-all-overdue').style.display = 'block';
+            } else {
+                document.getElementById('view-all-overdue').style.display = 'none';
+            }
+        } else {
+            // No overdue tasks
+            const noTasks = document.createElement('div');
+            noTasks.className = 'no-tasks-message';
+            noTasks.textContent = 'No overdue tasks.';
+            listContainer.appendChild(noTasks);
+        }
+    }
     // Function to fetch users for the dropdown
     function fetchUsers() {
         // Clear existing options first
         const addDropdown = document.getElementById('assignedTo');
         addDropdown.innerHTML = '<option value="">Select user...</option>';
-        
+
         // Fetch users from API
         fetch('/users')
             .then(response => response.json())

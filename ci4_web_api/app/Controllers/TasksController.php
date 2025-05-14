@@ -772,19 +772,56 @@ class TasksController extends BaseController
             $builder = $db->table('tasks');
             $builder->select('status, COUNT(*) as count');
             $builder->groupBy('status');
+
             $statusBreakdown = $builder->get()->getResultArray();
 
             // Add priority breakdown
             $builder = $db->table('tasks');
             $builder->select('priority, COUNT(*) as count');
             $builder->groupBy('priority');
+
             $priorityBreakdown = $builder->get()->getResultArray();
 
-            // Format the results
+             // Format the results
             $metrics['tasks'] = [
                 'total' => (int)$totalTasks,
                 'status_breakdown' => $statusBreakdown,
                 'priority_breakdown' => $priorityBreakdown
+            ];
+
+            // Add overdue tasks data
+            $builder = $db->table('tasks');
+            $builder->select('tasks.id, tasks.title, tasks.due_date, tasks.priority, tasks.user_id, users.name as assigned_to');
+            $builder->join('users', 'tasks.user_id = users.id', 'left');
+            $builder->where('tasks.due_date <', date('Y-m-d'));
+            $builder->where('tasks.status !=', 'completed');
+            $builder->orderBy('tasks.due_date', 'ASC');
+            $builder->limit(10); // Get top 10 overdue tasks
+
+            $overdueTasks = $builder->get()->getResultArray();
+
+            // Calculate days overdue for each task
+            foreach ($overdueTasks as &$task) {
+                if ($task['due_date']) {
+                    $dueDate = new \DateTime($task['due_date']);
+                    $today = new \DateTime();
+                    $interval = $today->diff($dueDate);
+                    $task['days_overdue'] = $interval->days;
+                } else {
+                    $task['days_overdue'] = 0;
+                }
+            }
+
+            // Get total count of overdue tasks
+            $builder = $db->table('tasks');
+            $builder->where('due_date <', date('Y-m-d'));
+            $builder->where('status !=', 'completed');
+            $overdueCount = $builder->countAllResults();
+            
+            // Add to metrics
+            $metrics['overdue_tasks'] = [
+                'count' => $overdueCount,
+                'list' => $overdueTasks
             ];
 
             return $this->respondWithJson(true, "Dashboard metrics retrieved successfully", $metrics);

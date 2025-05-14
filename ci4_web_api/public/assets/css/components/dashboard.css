@@ -251,3 +251,128 @@
     font-size: 12px;
     color: #666;
 }
+
+/* Overdue Tasks Card Styles */
+#overdue-tasks-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.overdue-tasks-list {
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.overdue-tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.overdue-tasks-table th {
+    text-align: left;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.overdue-tasks-table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.overdue-tasks-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.overdue-tasks-table .task-title {
+    font-weight: 500;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overdue-tasks-table .days-overdue {
+    font-weight: 600;
+    color: #DC3545;
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.priority-badge.high {
+    background-color: #ffdde1;
+    color: #DC3545;
+}
+
+.priority-badge.medium {
+    background-color: #fff3cd;
+    color: #FFC107;
+}
+
+.priority-badge.low {
+    background-color: #d4edda;
+    color: #28A745;
+}
+
+.view-task-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.view-task-btn:hover {
+    background-color: #0069d9;
+}
+
+.no-tasks-message {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.view-all-link {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.view-all-link a {
+    font-size: 0.85rem;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.view-all-link a:hover {
+    text-decoration: underline;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+}
+
+/* Highlight rows based on priority */
+.overdue-tasks-table tr.priority-high {
+    border-left: 3px solid #DC3545;
+}
+
+.overdue-tasks-table tr.priority-medium {
+    border-left: 3px solid #FFC107;
+}
+
+.overdue-tasks-table tr.priority-low {
+    border-left: 3px solid #28A745;
+}
