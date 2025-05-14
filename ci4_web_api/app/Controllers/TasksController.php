@@ -824,6 +824,43 @@ class TasksController extends BaseController
                 'list' => $overdueTasks
             ];
 
+            // Add upcoming tasks data (due in next 7 days)
+            $builder = $db->table('tasks');
+            $builder->select('tasks.id, tasks.title, tasks.due_date, tasks.priority, tasks.user_id, users.name as assigned_to');
+            $builder->join('users', 'tasks.user_id = users.id', 'left');
+            $builder->where('tasks.due_date >=', date('Y-m-d'));
+            $builder->where('tasks.due_date <=', date('Y-m-d', strtotime('+7 days')));
+            $builder->where('tasks.status !=', 'completed');
+            $builder->orderBy('tasks.due_date', 'ASC');
+            $builder->limit(3); // Get top 10 upcoming tasks
+
+            $upcomingTasks = $builder->get()->getResultArray();
+
+            // Calculate days until due for each task
+            foreach ($upcomingTasks as &$task) {
+                if ($task['due_date']) {
+                    $dueDate = new \DateTime($task['due_date']);
+                    $today = new \DateTime();
+                    $interval = $today->diff($dueDate);
+                    $task['days_until_due'] = $interval->days;
+                } else {
+                    $task['days_until_due'] = 0;
+                }
+            }
+
+            // Get total count of upcoming tasks
+            $builder = $db->table('tasks');
+            $builder->where('due_date >=', date('Y-m-d'));
+            $builder->where('due_date <=', date('Y-m-d', strtotime('+7 days')));
+            $builder->where('status !=', 'completed');
+            $upcomingCount = $builder->countAllResults();
+
+            // Add to metrics
+            $metrics['upcoming_tasks'] = [
+                'count' => $upcomingCount,
+                'list' => $upcomingTasks
+            ];
+
             return $this->respondWithJson(true, "Dashboard metrics retrieved successfully", $metrics);
         } catch(\Exception $e) {
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);

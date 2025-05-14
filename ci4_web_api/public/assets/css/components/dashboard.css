@@ -376,3 +376,76 @@
 .overdue-tasks-table tr.priority-low {
     border-left: 3px solid #28A745;
 }
+
+/* Upcoming Tasks Card Styles */
+#upcoming-tasks-card {
+    display: flex;
+    flex-direction: column;
+     grid-column: span 2;
+}
+
+.upcoming-tasks-list {
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.upcoming-tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.upcoming-tasks-table th {
+    text-align: left;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.upcoming-tasks-table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.upcoming-tasks-table th,
+.upcoming-tasks-table td {
+    padding: 10px;
+    white-space: nowrap;
+}
+
+.upcoming-tasks-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.upcoming-tasks-table .task-title {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.days-due {
+    font-weight: 600;
+    color: #17A2B8; /* Cyan for upcoming tasks */
+    min-width: 120px;
+}
+
+.days-text {
+    display: block;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Highlight rows based on due date proximity */
+.upcoming-tasks-table tr.days-critical {
+    border-left: 10px solid #DC3545; /* Red for tasks due today or tomorrow */
+}
+
+.upcoming-tasks-table tr.days-warning {
+    border-left: 10px solid #FFC107; /* Yellow for tasks due in 2-3 days */
+}
+
+.upcoming-tasks-table tr.days-upcoming {
+    border-left: 10px solid #28A745; /* Green for tasks due in 4+ days */
+}

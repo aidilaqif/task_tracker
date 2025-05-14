@@ -107,7 +107,21 @@
                 <a href="/task?status=overdue">View All Overdue Tasks</a>
             </div>
         </div>
-        <!-- More metric cards will be added for the other dashboard features -->
+        
+        <!-- Upcoming Tasks (Due in Next 7 Days) -->
+         <div class="metric-card" id="upcoming-tasks-card">
+            <h3>Tasks Due in Next 7 Days</h3>
+            <div class="total" id="upcoming-count">-</div>
+            <p>Tasks Due Soon</p>
+
+            <div class="upcoming-tasks-list" id="upcoming-tasks-list">
+                <div class="loading-spinner">Loading upcoming tasks...</div>
+            </div>
+
+            <div class="view-all-link" id="view-all-upcoming" style="display: none;">
+                <a href="/task?due=upcoming">View All Upcoming Tasks</a>
+            </div>
+         </div>
     </div>
 </div>
 
@@ -233,10 +247,14 @@
             </div>
         `;
 
-        // Also show loading for priority counts
+        // Show loading for priority counts
         document.getElementById('high-priority-count').textContent = '-';
         document.getElementById('medium-priority-count').textContent = '-';
         document.getElementById('low-priority-count').textContent = '-';
+
+    // Show loading state section for upcoming tasks
+    document.getElementById('upcoming-count').textContent = '-';
+    document.getElementById('upcoming-tasks-list').innerHTML = '<div class="loading-spinner">Loading upcoming tasks...</div>';
 
 
 
@@ -258,12 +276,17 @@
 
                     // Update overdue tasks
                     updateOverdueTasks(data.data);
+
+                    // Update upcoming tasks
+                    updateUpcomingTasks(data.data);
                 } else {
                     console.error('Failed to load dashboard metrics:', data.msg);
                     document.getElementById('total-tasks').textContent = 'Error loading data';
                     document.getElementById('priority-chart-total').textContent = 'Error';
                     document.getElementById('overdue-count').textContent = 'Error';
                     document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
+                    document.getElementById('upcoming-count').textContent = 'Error';
+                    document.getElementById('upcoming-tasks-list').innerHTML = '<div class="error-message">Error loading upcoming tasks</div>';
                 }
             })
             .catch(error => {
@@ -272,6 +295,8 @@
                 document.getElementById('priority-chart-total').textContent = 'Error';
                 document.getElementById('overdue-count').textContent = 'Error';
                 document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
+                document.getElementById('upcoming-count').textContent = 'Error';
+                document.getElementById('upcoming-tasks-list').innerHTML = '<div class="error-message">Error loading upcoming tasks</div>';
             });
     }
     
@@ -560,6 +585,105 @@
                 console.error('Error loading users:', error);
                 addDropdown.innerHTML += '<option value="" disabled>Error loading users</option>';
             });
+    }
+
+    // Function to update upcoming tasks section
+    function updateUpcomingTasks(dashboardData) {
+        // Get upcoming tasks data
+        const upcomingData = dashboardData.upcoming_tasks;
+        const count = upcomingData ? upcomingData.count : 0;
+
+        // Update count in the UI
+        document.getElementById('upcoming-count').textContent = count;
+
+        // Get the container for the list
+        const listContainer = document.getElementById('upcoming-tasks-list');
+        listContainer.innerHTML = '';
+
+        // Check if have any upcoming tasks
+        if (count > 0 && upcomingData.list && upcomingData.list.length > 0) {
+            // Create the table
+            const table = document.createElement('table');
+            table.className = 'upcoming-tasks-table';
+
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Task</th>
+                    <th>Assigned To</th>
+                    <th>Due In</th>
+                    <th>Priority</th>
+                    <th></th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            // Create table body
+            const tbody = document.createElement('tbody');
+
+            // Add each upcoming task to the table
+            upcomingData.list.forEach(task => {
+                const tr = document.createElement('tr');
+
+                // Determine CSS class based on days until due
+                let daysClass = '';
+                if (task.days_until_due <= 1) {
+                    daysClass = 'days-critical';
+                } else if (task.days_until_due <= 3) {
+                    daysClass = 'days-warning';
+                } else {
+                    daysClass = 'days-upcoming';
+                }
+
+                // Add task priority class to the row
+                tr.className = `priority- ${daysClass}`;
+
+                 // Format the due date
+                const dueDate = new Date(task.due_date);
+                const formattedDate = dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                const daysText = task.days_until_due === 0 ? 'Today' : 
+                                task.days_until_due === 1 ? 'Tomorrow' : 
+                                `In ${task.days_until_due} days`;
+
+
+                tr.innerHTML = `
+                    <td class="task-title">${task.title}</td>
+                    <td>${task.assigned_to || 'Unassigned'}</td>
+                    <td class="days-due">${formattedDate} <span class="days-text">(${daysText})</span></td>
+                    <td><span class="priority-badge ${task.priority}">${task.priority}</span></td>
+                    <td>
+                        <button class="view-task-btn" data-id="${task.id}">View</button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            listContainer.appendChild(table);
+
+            // Add event listeners to view buttons
+            document.querySelectorAll('.view-task-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const taskId = this.getAttribute('data-id');
+                    window.location.href = `/task_detail?task_id=${taskId}`;
+                });
+            });
+
+            // Show view all link if there are more than shown
+            if (count > upcomingData.list.length) {
+                document.getElementById('view-all-upcoming').style.display = 'block';
+            } else {
+                document.getElementById('view-all-upcoming').style.display = 'none';
+            }
+        } else {
+            // No upcoming tasks
+            const noTasks = document.createElement('div');
+            noTasks.className = 'no-tasks-message';
+            noTasks.textContent = 'No tasks due in the next 7 days.';
+            listContainer.appendChild(noTasks);
+        }
     }
 </script>
 <?= $this->endSection() ?>
