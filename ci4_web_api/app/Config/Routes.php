@@ -71,3 +71,9 @@ $routes->post('notifications/task', 'NotificationsController::sendTaskNotificati
 $routes->get('notifications/user/(:num)', 'NotificationsController::getUserNotifications/$1');
 $routes->put('notifications/read/(:num)', 'NotificationsController::markAsRead/$1');
 $routes->post('notifications/task-assignment', 'TasksController::sendTaskAssignmentNotification');
+
+// Admin Notification Routes
+$routes->get('admin/notifications', 'NotificationsController::getAdminNotifications', ['filter' => 'auth']);
+$routes->post('admin/notifications/mark-read/(:num)', 'NotificationsController::markAsRead/$1', ['filter' => 'auth']);
+$routes->post('admin/notifications/mark-all-read', 'NotificationsController::markAllAsRead', ['filter' => 'auth']);
+$routes->get('admin/notifications/unread-count', 'NotificationsController::getUnreadCount', ['filter' => 'auth']);

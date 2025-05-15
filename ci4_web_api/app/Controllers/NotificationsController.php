@@ -203,6 +203,7 @@ class NotificationsController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
+
     private function sendToNotificationServer($task, $notificationId = null)
     {
         try {
@@ -300,6 +301,130 @@ class NotificationsController extends BaseController
         } catch (\Exception $e) {
             log_message('error', "Exception sending to notification server: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             return false;
+        }
+    }
+
+    // Websites notifications
+    /**
+     * Get notifications for admin dashboard
+     * @return ResponseInterface
+     */
+    public function getAdminNotifications()
+    {
+        // Get query parameters for filtering
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 10);
+        $unreadOnly = (bool) ($this->request->getGet('unread') ?? false);
+        $type = $this->request->getGet('type');
+        $taskId = (int) ($this->request->getGet('task_id') ?? 0);
+
+        // Create filter array
+        $filters = [];
+
+        // Only show admin notifications (for managers/admins)
+        $filters['user_id'] = session()->get('user_id');
+
+        // Apply unread filter if specified
+        if ($unreadOnly) {
+            $filters['is_read'] = 0;
+        }
+
+        // Apply type filter if specified
+        if ($type) {
+            $filters['type'] = $type;
+        }
+
+        // Apply task filter if specified
+        if ($taskId > 0) {
+            $filters['task_id'] = $taskId;
+        }
+
+        try {
+            // Get notifications with filters and pagination
+            $notifications = $this->notificationsModel->getNotificationsWithFilters(
+                $filters, 
+                $page, 
+                $limit
+            );
+
+            // Get total count for pagination
+            $total = $this->notificationsModel->countNotificationsWithFilters($filters);
+
+            // Create pagination info
+            $pagination = [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'total_pages' => ceil($total / $limit)
+            ];
+
+            return $this->respondWithJson(
+                true, 
+                "Notifications retrieved successfully", 
+                [
+                    'notifications' => $notifications,
+                    'pagination' => $pagination
+                ]
+            );
+        } catch (\Exception $e) {
+            log_message('error', "Error retrieving admin notifications: " . $e->getMessage());
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get count of unread notifications
+     * @return ResponseInterface
+     */
+    public function getUnreadCount()
+    {
+        try {
+            $userId = session()->get('user_id');
+
+            $count = $this->notificationsModel->where('user_id', $userId)
+                ->where('is_read', 0)
+                ->countAllResults();
+
+            return $this->respondWithJson(true, "Unread count retrieved successfully", $count);
+        } catch (\Exception $e) {
+            log_message('error', "Error getting unread count: " . $e->getMessage());
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Mark all notifications as read
+     * @return ResponseInterface
+     */
+    public function markAllAsRead()
+    {
+        try {
+            $userId = session()->get('user_id');
+            
+            // Get all unread notifications for this user
+            $unreadNotifications = $this->notificationsModel->where('user_id', $userId)
+                ->where('is_read', 0)
+                ->findAll();
+
+            // Update all to read
+            if (!empty($unreadNotifications)) {
+                $this->notificationsModel->where('user_id', $userId)
+                    ->where('is_read', 0)
+                    ->set(['is_read' => 1])
+                    ->update();
+
+                $count = count($unreadNotifications);
+                return $this->respondWithJson(
+                    true, 
+                    "Marked {$count} notifications as read", 
+                    ['count' => $count]
+                );
+            }
+
+            return $this->respondWithJson(true, "No unread notifications to mark", ['count' => 0]);
+        } catch (\Exception $e) {
+            log_message('error', "Error marking all notifications as read: " . $e->getMessage());
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
     // Standard JSON response method
