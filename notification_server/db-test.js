@@ -21,21 +21,21 @@ async function testDatabaseConnection() {
     user: dbConfig.user,
     database: dbConfig.database
   });
-  
+
   try {
     const pool = mysql.createPool(dbConfig);
     const connection = await pool.getConnection();
     console.log('Database connection successful!');
-    
+
     // Test query to verify notifications table exists and has the correct structure
     const [tableInfo] = await connection.query('DESCRIBE notifications');
     console.log('Notifications table structure:');
     console.table(tableInfo);
-    
+
     // Check for any unread notifications
     const [unreadCount] = await connection.query('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0');
     console.log('Unread notifications count:', unreadCount[0].count);
-    
+
     connection.release();
     await pool.end();
   } catch (error) {
