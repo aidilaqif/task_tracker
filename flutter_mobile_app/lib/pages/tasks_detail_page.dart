@@ -8,11 +8,13 @@ import 'package:intl/intl.dart';
 
 class TasksDetailPage extends StatefulWidget {
   final Task task;
+  final int currentUserId;
   final VoidCallback onTaskUpdated;
 
   const TasksDetailPage({
     super.key,
     required this.task,
+    required this.currentUserId,
     required this.onTaskUpdated,
   });
 
@@ -27,6 +29,15 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
   final TextEditingController _progressController = TextEditingController();
 
   Future<void> _updateTaskProgress() async {
+    if (!_task.isAssignedToYou) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You cannot update a task that is no longer assigned to you'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
     final progress = int.tryParse(_progressController.text);
     if (progress == null || progress < 0 || progress > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,11 +54,26 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
     });
 
     try {
-      final response = await _apiService.updateTaskProgress(_task.id, progress);
+      final userId = int.parse(widget.task.userId.toString());
+      final response = await _apiService.updateTaskProgress(_task.id, progress, userId);
 
       if (response['status']) {
+        final updatedTask = Task.fromJson(response['data']);
         setState(() {
-          _task = Task.fromJson(response['data']);
+          _task = Task(
+            id: updatedTask.id,
+            userId: updatedTask.userId,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            dueDate: updatedTask.dueDate,
+            status: updatedTask.status,
+            priority: updatedTask.priority,
+            progress: updatedTask.progress,
+            createdAt: updatedTask.createdAt,
+            updatedAt: updatedTask.updatedAt,
+            isAssignedToYou: _task.isAssignedToYou,
+            assignedTo: _task.assignedTo,
+          );
           _progressController.text = _task.progress;
           _isUpdating = false;
         });
@@ -84,16 +110,40 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
   }
 
   Future<void> _updateTaskStatus(String newStatus) async {
+    if (!_task.isAssignedToYou) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You cannot update a task that is no longer assigned to you'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+      return;
+    }
     setState(() {
       _isUpdating = true;
     });
 
     try {
-      final response = await _apiService.updateTaskStatus(_task.id, newStatus);
+      final userId = int.parse(widget.task.userId.toString());
+      final response = await _apiService.updateTaskStatus(_task.id, newStatus, userId);
+      final updatedTask = Task.fromJson(response['data']);
 
       if (response['status']) {
         setState(() {
-          _task = Task.fromJson(response['data']);
+          _task = Task(
+            id: updatedTask.id,
+            userId: updatedTask.userId,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            dueDate: updatedTask.dueDate,
+            status: updatedTask.status,
+            priority: updatedTask.priority,
+            progress: updatedTask.progress,
+            createdAt: updatedTask.createdAt,
+            updatedAt: updatedTask.updatedAt,
+            isAssignedToYou: _task.isAssignedToYou,
+            assignedTo: _task.assignedTo,
+          );
           _isUpdating = false;
         });
 
@@ -125,6 +175,31 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
           backgroundColor: AppTheme.errorColor,
         ),
       );
+    }
+  }
+  Future<void> _markRelatedNotificationsAsRead() async {
+    try {
+      final userId = int.parse(widget.currentUserId.toString());
+      final response = await _apiService.getUserNotifications(userId, isRead: false);
+
+      if (response['status'] && response['data'] != null) {
+        final notifications = response['data'] as List;
+
+        // Find all unread notifications for this task
+        for (var notification in notifications) {
+          if (notification['task_id'] != null && 
+              int.tryParse(notification['task_id'].toString()) == widget.task.id) {
+
+            // Mark this notification as read
+            final notificationId = int.tryParse(notification['id'].toString());
+            if (notificationId != null) {
+              await _apiService.markNotificationAsRead(notificationId);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error marking related notifications as read: $e');
     }
   }
 
@@ -171,12 +246,33 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
     );
   }
 
+
   @override
   void initState() {
     super.initState();
     _task = widget.task;
     _progressController.text = _task.progress;
+    _fetchTaskDetails();
+    _markRelatedNotificationsAsRead();
   }
+
+    Future<void> _fetchTaskDetails() async {
+      try {
+        final response = await _apiService.viewTask(
+          widget.task.id, 
+          userId: widget.currentUserId
+        );
+        
+        if (response['status']) {
+          setState(() {
+            _task = Task.fromJson(response['data']);
+          });
+          print('Task fetched with isAssignedToYou: ${_task.isAssignedToYou}');
+        }
+      } catch (e) {
+        print('Error fetching task details: $e');
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +289,47 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!_task.isAssignedToYou)
+              Container(
+                padding: EdgeInsets.all(AppTheme.spacingMd),
+                margin: EdgeInsets.only(bottom: AppTheme.spacingLg),
+                decoration: BoxDecoration(
+                  color: AppTheme.warningColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
+                  border: Border.all(color: AppTheme.warningColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppTheme.warningColor,
+                      size: 24,
+                    ),
+                    SizedBox(width: AppTheme.spacingMd),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "This task has been reassigned",
+                            style: AppTheme.subtitleStyle.copyWith(
+                              color: AppTheme.warningColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: AppTheme.spacingXs),
+                          Text(
+                            "This task is now assigned to ${_task.assignedTo ?? 'someone else'}. You can view it, but cannot make changes.",
+                            style: TextStyle(
+                              color: AppTheme.warningColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             // Title and Priority
             Row(
               children: [
@@ -236,6 +373,38 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
                 ),
               ],
             ),
+            SizedBox(height: AppTheme.spacingMd),
+            // Assignee info
+            Row(
+              children: [
+                Icon(Icons.person_outline, size: 20, color: AppTheme.primaryColor),
+                SizedBox(width: AppTheme.spacingSm),
+                Text(
+                  'Assigned to: ${_task.assignedTo ?? 'Unassigned'}',
+                  style: AppTheme.subtitleStyle,
+                ),
+                if (_task.isAssignedToYou)
+                  Container(
+                    margin: EdgeInsets.only(left: AppTheme.spacingMd),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingSm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadiusSm),
+                    ),
+                    child: Text(
+                      'You',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             SizedBox(height: AppTheme.spacingLg),
             // Progress
             Text('Progress', style: AppTheme.titleStyle),
@@ -257,56 +426,80 @@ class _TasksDetailpageState extends State<TasksDetailPage> {
               style: AppTheme.bodyStyle,
             ),
             SizedBox(height: AppTheme.spacingLg),
-            // Update Progress
-            Text('Update Progress', style: AppTheme.titleStyle),
-            SizedBox(height: AppTheme.spacingSm),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _progressController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Progress (%)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: AppTheme.spacingMd),
-                ElevatedButton(
-                  onPressed: (){
-                    _updateTaskProgress();
-                  },
-                  child: _isUpdating
-                    ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.textOnPrimaryColor),
-                      ),
-                    )
-                    : Text('Update'),
-                ),
-              ],
-            ),
-            SizedBox(height: AppTheme.spacingLg),
-            // Action Buttons
-            if (_task.status != 'completed')
+            // Update Progress - if task is assigned to current user
+            if (_task.isAssignedToYou)... [
+              Text('Update Progress', style: AppTheme.titleStyle),
+              SizedBox(height: AppTheme.spacingSm),
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isUpdating ? null : _showStatusUpdateDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                    child: TextField(
+                      controller: _progressController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Progress (%)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
+                        ),
                       ),
-                      child: Text('Update Status', style: TextStyle(color: AppTheme.textOnPrimaryColor)),
                     ),
                   ),
+                  SizedBox(width: AppTheme.spacingMd),
+                  ElevatedButton(
+                    onPressed: _isUpdating ? null : _updateTaskProgress,
+                    child: _isUpdating
+                      ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.textOnPrimaryColor),
+                        ),
+                      )
+                      : Text('Update'),
+                  ),
                 ],
+              ),
+              SizedBox(height: AppTheme.spacingLg),
+              // Action Buttons
+              if (_task.status != 'completed')
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isUpdating ? null : _showStatusUpdateDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                        ),
+                        child: Text('Update Status', style: TextStyle(color: AppTheme.textOnPrimaryColor)),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+            // If not assigned, show read-only message
+            if (!_task.isAssignedToYou && _task.status != 'completed')
+              Container(
+                padding: EdgeInsets.all(AppTheme.spacingMd),
+                decoration: BoxDecoration(
+                  color: AppTheme.scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: AppTheme.textSecondaryColor),
+                    SizedBox(width: AppTheme.spacingMd),
+                    Expanded(
+                      child: Text(
+                        'You cannot update this task as it is no longer assigned to you.',
+                        style: AppTheme.bodyStyle.copyWith(
+                          color: AppTheme.textSecondaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
           ],
         ),

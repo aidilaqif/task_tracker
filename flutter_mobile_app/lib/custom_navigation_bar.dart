@@ -6,6 +6,7 @@ import 'package:flutter_mobile_app/pages/activity_page.dart';
 import 'package:flutter_mobile_app/pages/team_page.dart';
 import 'package:flutter_mobile_app/pages/profile_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
+import 'package:flutter_mobile_app/services/notification_service.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -79,8 +80,11 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
           IconButton(
             icon: Icon(Icons.done_all, color: AppTheme.textOnPrimaryColor),
             onPressed: () {
-              // Mark all notifications as read
+              // Refresh notifications
+              final activityPage = _pages[1] as ActivityPage;
+              activityPage.refreshNotifications();
             },
+            tooltip: 'Refresh',
           ),
         ];
       
@@ -135,6 +139,9 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
 
     if (confirm) {
       try {
+        // Close socket connection
+        NotificationService().closeSocket();
+
         // Call logout API
         await _apiService.logoutUser();
 
@@ -148,6 +155,9 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
       } catch (e) {
         // Even if there's an error, still logout locally
         if (!mounted) return;
+
+        // Close socket connection
+        NotificationService().closeSocket();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -57,7 +57,10 @@ class TasksController extends BaseController
     public function addTask()
     {
         $input = $this->request->getJSON();
-
+    
+        // Log the input data
+        log_message('info', "Adding new task with data: " . json_encode($input));
+    
         $data = [
             'user_id' => $input->user_id,
             'title' => $input->title,
@@ -66,15 +69,47 @@ class TasksController extends BaseController
             'status' => $input->status,
             'priority' => $input->priority
         ];
-
+    
         try {
-            if ($this->tasksModel->insert($data)){
-                return $this->respondWithJson(true, "Task added successfully!");
+            // Start transaction
+            $db = \Config\Database::connect();
+            $db->transBegin();
+            
+            if ($this->tasksModel->insert($data)) {
+                $taskId = $this->tasksModel->getInsertID();
+                $task = $this->tasksModel->find($taskId);
+                
+                log_message('info', "Task {$taskId} created successfully with user_id: {$task['user_id']}");
+    
+                // Send notification if a user is assigned and NOT NULL
+                if (isset($task['user_id']) && $task['user_id'] > 0) {
+                    log_message('info', "Attempting to create notification for new task {$taskId} assigned to user {$task['user_id']}");
+                    
+                    // Call the notification method explicitly
+                    $notificationResult = $this->createTaskNotification($task, 'assignment');
+                    
+                    if ($notificationResult) {
+                        log_message('info', "Successfully created notification for new task {$taskId}");
+                    } else {
+                        log_message('error', "Failed to create notification for new task {$taskId}");
+                    }
+                } else {
+                    log_message('info', "No notification created for task {$taskId} - no user assigned");
+                }
+
+                $db->transCommit();
+                return $this->respondWithJson(true, "Task added successfully!", $task);
             } else {
                 $errors = $this->tasksModel->errors();
+                log_message('error', "Failed to add task: " . json_encode($errors));
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to add task", $errors, 400);
             }
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
+            log_message('error', "Error adding task: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -107,26 +142,7 @@ class TasksController extends BaseController
                 // Get updated task
                 $updatedTask = $this->tasksModel->find($input->task_id);
                 // Send notication to the assigned user
-                // $this->sendNewTaskNotification($user, $updatedTask);
-                try {
-                    $notificationsModel = new \App\Models\NotificationsModel();
-                    $notificationData = [
-                        'user_id' => $user['id'],
-                        'task_id' => $task['id'],
-                        'title' => 'New Task Assigned',
-                        'message' => "You have been assigned a new task: {$task['title']}. Please check your tasks list for details.",
-                        'is_read' => false
-                    ];
-
-                    $result = $notificationsModel->insert($notificationData);
-                    if (!$result) {
-                        log_message('error', "Notification not created. Validation errors: ".json_encode($notificationsModel->errors()));
-                    } else {
-                        log_message('info', "Notification created for user {$user['id']} for task {$task['id']}");
-                    }
-                } catch (\Exception $e) {
-                    log_message('error', "Failed to create notification: ". $e->getMessage());
-                }
+                $this->createTaskNotification($updatedTask, 'assignment');
 
                 return $this->respondWithJson(true, "Task assigned successfully", $updatedTask);
             } else {
@@ -143,18 +159,24 @@ class TasksController extends BaseController
     {
         $task = $this->tasksModel->find($id);
 
-        if ($task) {
-            $usersModel = new \App\Models\UsersModel();
-            $user = $usersModel->find($task['user_id']);
-            if ($user) {
-                $task['assigned_to'] = $user['name'];
-            } else {
-                $task['assigned_to'] = 'Unassigned';
-            }
-            return $this->respondWithJson(true, "Task retrieved successfully", $task);
-        } else {
-            return $this->respondWithJson(false, "Tasks not found", null, 404);
+        if(!$task) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
         }
+
+        // Get requesting user ID from query parameter
+        $requestingUserId = $this->request->getVar('user_id');
+
+        // Add assignment flag to indicate if task is assigned to the requesting user
+        $task['isAssignedToYou'] = !empty($requestingUserId) && ((int)$requestingUserId === (int)$task['user_id']);
+
+        $usersModel = new \App\Models\UsersModel();
+        $user = $usersModel->find($task['user_id']);
+        if ($user) {
+            $task['assigned_to'] = $user['name'];
+        } else {
+            $task['assigned_to'] = 'Unassigned';
+        }
+        return $this->respondWithJson(true, "Task retrieved successfully", $task);
     }
 
     // function to get all tasks for a specific user
@@ -206,19 +228,57 @@ class TasksController extends BaseController
         $input = $this->request->getJSON();
         $data = [];
 
-        if (isset($input->title)){
+        // Get the old task data for comparison
+        $oldTask = $this->tasksModel->find($id);
+        if (!$oldTask) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
+        }
+
+        // Check which fields are being updated and track changes
+        $changes = [];
+
+        if (isset($input->user_id) && $oldTask['user_id'] != $input->user_id) {
+            $changes['user_id'] = [
+                'old' => $oldTask['user_id'],
+                'new' => $input->user_id
+            ];
+            $data['user_id'] = $input->user_id;
+        }
+
+        if (isset($input->title) && $oldTask['title'] != $input->title) {
+            $changes['title'] = [
+                'old' => $oldTask['title'],
+                'new' => $input->title
+            ];
             $data['title'] = $input->title;
         }
-        if (isset($input->description)){
+
+        if (isset($input->description) && $oldTask['description'] != $input->description) {
+            $changes['description'] = [
+                'old' => $oldTask['description'],
+                'new' => $input->description
+            ];
             $data['description'] = $input->description;
         }
-        if (isset($input->due_date)){
+
+        if (isset($input->due_date) && $oldTask['due_date'] != $input->due_date) {
+            $changes['due_date'] = [
+                'old' => $oldTask['due_date'],
+                'new' => $input->due_date
+            ];
             $data['due_date'] = $input->due_date;
         }
-        if (isset($input->status)){
+
+        if (isset($input->status)) {
             $allowedStatuses = ['pending', 'in-progress', 'completed', 'request-extension'];
-            if (in_array($input->status, $allowedStatuses)){
-                $data['status'] = $input->status;
+            if (in_array($input->status, $allowedStatuses)) {
+                if ($oldTask['status'] != $input->status) {
+                    $changes['status'] = [
+                        'old' => $oldTask['status'],
+                        'new' => $input->status
+                    ];
+                    $data['status'] = $input->status;
+                }
             } else {
                 return $this->respondWithJson(
                     false,
@@ -228,21 +288,101 @@ class TasksController extends BaseController
                 );
             }
         }
-        if (isset($input->priority)){
+
+        if (isset($input->priority) && $oldTask['priority'] != $input->priority) {
+            $changes['priority'] = [
+                'old' => $oldTask['priority'],
+                'new' => $input->priority
+            ];
             $data['priority'] = $input->priority;
         }
 
-        try{
-            if ($this->tasksModel->update($id, $data)){
+        // If no changes, return early
+        if (empty($data)) {
+            return $this->respondWithJson(true, "No changes to update", $oldTask);
+        }
+
+        // Remember if user assignment changed
+        $userChanged = isset($changes['user_id']);
+        $oldUserId = $oldTask['user_id'];
+
+        // Start transaction
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        try {
+            // Update the task
+            if ($this->tasksModel->update($id, $data)) {
                 $updatedTask = $this->tasksModel->find($id);
+                
+                // Handle notifications for different types of changes
+                if ($userChanged) {
+                    log_message('info', "User assignment changed for task {$id} from {$oldTask['user_id']} to {$data['user_id']}");
+
+                    // Only process if both old and new users are valid
+                    if ($oldUserId > 0 && $input->user_id > 0) {
+                        // Notify previous user about reassignment
+                        $this->createReassignmentNotification($oldTask, $input->user_id);
+                        // Notify new user about assignment
+                        $this->createTaskNotification($updatedTask, 'assignment');
+                    } else if ($input->user_id > 0) {
+                        $this->createTaskNotification($updatedTask, 'assignment');
+                    }
+                }
+                // Handle other specific notifications if user didn't change
+                else {
+                    // Status change notification
+                    if (isset($changes['status'])) {
+                        $this->createTaskNotification($updatedTask, 'status_update', [
+                            'new_status' => $changes['status']['new'],
+                            'old_status' => $changes['status']['old']
+                        ]);
+                    }
+
+                    // Priority change notification
+                    if (isset($changes['priority'])) {
+                        $this->createTaskNotification($updatedTask, 'priority_update', [
+                            'new_priority' => $changes['priority']['new'],
+                            'old_priority' => $changes['priority']['old']
+                        ]);
+                    }
+
+                    // Due date change notification
+                    if (isset($changes['due_date'])) {
+                        // Compare old and new values, only notify if actually different
+                        $oldDueDate = $changes['due_date']['old'];
+                        $newDueDate = $changes['due_date']['new'];
+                        
+                        // Format dates for comparison if not null
+                        $oldFormatted = $oldDueDate ? date('Y-m-d', strtotime($oldDueDate)) : null;
+                        $newFormatted = $newDueDate ? date('Y-m-d', strtotime($newDueDate)) : null;
+                        
+                        if ($oldFormatted !== $newFormatted) {
+                            $this->createTaskNotification($updatedTask, 'due_date_update', [
+                                'new_due_date' => $newDueDate,
+                                'old_due_date' => $oldDueDate
+                            ]);
+                        }
+                    }
+
+                    // If only title or description changed, send general update notification
+                    if ((isset($changes['title']) || isset($changes['description'])) && 
+                        !isset($changes['status']) && !isset($changes['priority']) && !isset($changes['due_date'])) {
+                        $this->createTaskNotification($updatedTask, 'update');
+                    }
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update tasks", $errors, 400);
             }
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', "Error updating task: " . $e->getMessage());
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
-
         }
     }
 
@@ -265,15 +405,55 @@ class TasksController extends BaseController
                 400
             );
         }
+        // Get requesting user ID
+        $requestingUserId = $this->request->getVar('user_id');
+        // Get the task to check assignment
+        $task = $this->tasksModel->find($id);
+        if (!$task) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
+        }
+        // Check if the requesting user is assigned to this task
+        if ($requestingUserId && $requestingUserId != $task['user_id']) {
+            return $this->respondWithJson(
+                false,
+                "You cannot update the status of a task that is not assigned to you",
+                null,
+                403,
+            );
+        }
+        // Store old status for notification purposes
+        $oldStatus = $task['status'];
+
         try {
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
             if ($this->tasksModel->update($id, ['status' => $input->status])){
                 $updatedTask = $this->tasksModel->find($id);
+                // Add isAssignedToYou if user_id is provided
+                if ($requestingUserId) {
+                    $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
+                }
+                // Only create notification if status actually changed
+                if ($oldStatus != $input->status) {
+                    // Create notification for status update
+                    $this->createTaskNotification($updatedTask, 'status_update', [
+                        'new_status' => $input->status,
+                        'old_status' => $oldStatus
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task status updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task status", $errors, 400);
             }
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -322,15 +502,58 @@ class TasksController extends BaseController
                 400
             );
         }
+
+        // Get requesting user ID
+        $requestingUserId = $this->request->getVar('user_id');
+
+        // Get the task to check assignment
+        $task = $this->tasksModel->find($id);
+        if (!$task) {
+            return $this->respondWithJson(false, "Task not found", null, 404);
+        }
+        // Check if requesting user is assigned to this task
+        if ($requestingUserId && $requestingUserId != $task['user_id']) {
+            return $this->respondWithJson(
+                false,
+                "You cannot update the priority of a task that is not assigned to you",
+                null,
+                403,
+            );
+        }
+
+        // Store old priority for notification purpose
+        $oldPriority = $task['priority'];
+
         try {
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
             if ($this->tasksModel->update($id, ['priority' => $input->priority])){
                 $updatedTask = $this->tasksModel->find($id);
+                // Add isAssignedToYou flag ig user_id is provided
+                if ($requestingUserId) {
+                    $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
+                }
+                // Only create notification if priority actually changed
+                if ($oldPriority != $input->priority) {
+                    // Create notification for priority update
+                    $this->createTaskNotification($updatedTask, 'priority_update', [
+                        'new_priority' => $input->priority,
+                        'old_priority' => $oldPriority
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task priority updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task priority", $errors, 400);
             }
         } catch (\Exception $e){
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error",$e->getMessage(), 500);
         }
     }
@@ -355,6 +578,9 @@ class TasksController extends BaseController
             );
         }
 
+        // Get requesting user ID
+        $requestingUserId = $this->request->getVar('user_id');
+
         try {
             // Get current task to check if status needs updating
             $task = $this->tasksModel->find($id);
@@ -362,23 +588,60 @@ class TasksController extends BaseController
                 return $this->respondWithJson(false, "Task not found", null, 404);
             }
 
+            // Check if the requesting user is assigned to this task
+            if ($requestingUserId && $requestingUserId != $task['user_id']) {
+                return $this->respondWithJson(
+                    false,
+                    "You cannot update the progress of a task that is not assigned to you",
+                    null,
+                    403
+                );
+            }
+            // Store old progress for notification purposes
+            $oldProgress = $task['progress'] ?? 0;
+
             $data = ['progress' => $progress];
+            $statusChanged = false;
+            $oldStatus = $task['status'];
 
             // Auto-update status based on progress if needed
             if($progress == 100 && $task['status'] != 'completed') {
                 $data['status'] = 'completed';
+                $statusChanged = true;
             } elseif ($progress > 0 && $progress < 100 && $task['status'] == 'pending') {
                 $data['status'] = 'in-progress';
+                $statusChanged = true;
             }
+
+            $db = \Config\Database::connect();
+            $db->transBegin();
 
             if ($this->tasksModel->update($id, $data)) {
                 $updatedTask = $this->tasksModel->find($id);
+                // Add isAssignedToYou flag if user_id is provided
+                if ($requestingUserId) {
+                    $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
+                }
+                // Create a separate notification if status was auto-updated
+                if ($statusChanged) {
+                    $this->createTaskNotification($updatedTask, 'status_update', [
+                        'new_status' => $data['status'],
+                        'old_status' => $oldStatus,
+                        'auto_updated' => true
+                    ]);
+                }
+
+                $db->transCommit();
                 return $this->respondWithJson(true, "Task progress updated successfully", $updatedTask);
             } else {
                 $errors = $this->tasksModel->errors();
+                $db->transRollback();
                 return $this->respondWithJson(false, "Failed to update task progress", $errors, 400);
             }
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -493,27 +756,415 @@ class TasksController extends BaseController
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
-    // Send new notification to user
-    // private function sendNewTaskNotification($user, $task)
-    // {
-    //     // Prepare notification data
-    //     $notificationData = [
-    //         'user_id' => $user['id'],
-    //         'task_id' => $task['id'],
-    //         'title' => 'New Task Assigned',
-    //         'message' => "You have been assigned a new task: {$task['title']}. Please check your tasks list for details.",
-    //         'is_read' => false
-    //     ];
+    // Get Dashboard metrics function
+    public function getDashboardMetrics()
+    {
+        try {
+            $db = \Config\Database::connect();
+            $metrics = [];
 
-    //     // Insert notification
-    //     try {
-    //         $this->notificationsModel->insert($notificationData);
-    //         log_message('info', "Notification sent to user {$user['id']} for task {$task['id']}");
-    //     } catch (\Exception $e) {
-    //         // Log the error
-    //         log_message('error', "Failed to send notification: ".$e->getMessage());
-    //     }
-    // }
+            // Get total tasks and status breakdown
+            $builder = $db->table('tasks');
+            $builder->select('COUNT(*) as total_tasks');
+            $totalTasks = $builder->get()->getRow()->total_tasks;
+
+            // Get status breakdown
+            $builder = $db->table('tasks');
+            $builder->select('status, COUNT(*) as count');
+            $builder->groupBy('status');
+
+            $statusBreakdown = $builder->get()->getResultArray();
+
+            // Add priority breakdown
+            $builder = $db->table('tasks');
+            $builder->select('priority, COUNT(*) as count');
+            $builder->groupBy('priority');
+
+            $priorityBreakdown = $builder->get()->getResultArray();
+
+             // Format the results
+            $metrics['tasks'] = [
+                'total' => (int)$totalTasks,
+                'status_breakdown' => $statusBreakdown,
+                'priority_breakdown' => $priorityBreakdown
+            ];
+
+            // Add overdue tasks data
+            $builder = $db->table('tasks');
+            $builder->select('tasks.id, tasks.title, tasks.due_date, tasks.priority, tasks.user_id, users.name as assigned_to');
+            $builder->join('users', 'tasks.user_id = users.id', 'left');
+            $builder->where('tasks.due_date <', date('Y-m-d'));
+            $builder->where('tasks.status !=', 'completed');
+            $builder->orderBy('tasks.due_date', 'ASC');
+            $builder->limit(10); // Get top 10 overdue tasks
+
+            $overdueTasks = $builder->get()->getResultArray();
+
+            // Calculate days overdue for each task
+            foreach ($overdueTasks as &$task) {
+                if ($task['due_date']) {
+                    $dueDate = new \DateTime($task['due_date']);
+                    $today = new \DateTime();
+                    $interval = $today->diff($dueDate);
+                    $task['days_overdue'] = $interval->days;
+                } else {
+                    $task['days_overdue'] = 0;
+                }
+            }
+
+            // Get total count of overdue tasks
+            $builder = $db->table('tasks');
+            $builder->where('due_date <', date('Y-m-d'));
+            $builder->where('status !=', 'completed');
+            $overdueCount = $builder->countAllResults();
+            
+            // Add to metrics
+            $metrics['overdue_tasks'] = [
+                'count' => $overdueCount,
+                'list' => $overdueTasks
+            ];
+
+            // Add upcoming tasks data (due in next 7 days)
+            $builder = $db->table('tasks');
+            $builder->select('tasks.id, tasks.title, tasks.due_date, tasks.priority, tasks.user_id, users.name as assigned_to');
+            $builder->join('users', 'tasks.user_id = users.id', 'left');
+            $builder->where('tasks.due_date >=', date('Y-m-d'));
+            $builder->where('tasks.due_date <=', date('Y-m-d', strtotime('+7 days')));
+            $builder->where('tasks.status !=', 'completed');
+            $builder->orderBy('tasks.due_date', 'ASC');
+            $builder->limit(3); // Get top 10 upcoming tasks
+
+            $upcomingTasks = $builder->get()->getResultArray();
+
+            // Calculate days until due for each task
+            foreach ($upcomingTasks as &$task) {
+                if ($task['due_date']) {
+                    $dueDate = new \DateTime($task['due_date']);
+                    $today = new \DateTime();
+                    $interval = $today->diff($dueDate);
+                    $task['days_until_due'] = $interval->days;
+                } else {
+                    $task['days_until_due'] = 0;
+                }
+            }
+
+            // Get total count of upcoming tasks
+            $builder = $db->table('tasks');
+            $builder->where('due_date >=', date('Y-m-d'));
+            $builder->where('due_date <=', date('Y-m-d', strtotime('+7 days')));
+            $builder->where('status !=', 'completed');
+            $upcomingCount = $builder->countAllResults();
+
+            // Add to metrics
+            $metrics['upcoming_tasks'] = [
+                'count' => $upcomingCount,
+                'list' => $upcomingTasks
+            ];
+
+            return $this->respondWithJson(true, "Dashboard metrics retrieved successfully", $metrics);
+        } catch(\Exception $e) {
+            return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
+        }
+    }
+    private function createReassignmentNotification($oldTask, $newUserId)
+    {
+        try {
+            // Get user data
+            $usersModel = new \App\Models\UsersModel();
+            $oldUser = $usersModel->find($oldTask['user_id']);
+            $newUser = $usersModel->find($newUserId);
+
+            if (!$oldUser) {
+                log_message('error', "Cannot send reassignment notification: Old user {$oldTask['user_id']} not found");
+                return false;
+            }
+
+            // Get new user name for the message
+            $newUserName = $newUser ? $newUser['name'] : 'another user';
+
+            // Setup notification data
+            $title = "Task Reassigned";
+            $message = "Task '{$oldTask['title']}' has been reassigned to {$newUserName}.";
+
+            // Start transaction
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            // Check for existing notifications for this task and user
+            $notificationsModel = new \App\Models\NotificationsModel();
+            $existingNotification = $notificationsModel->where('user_id', $oldUser['id'])
+                ->where('task_id', $oldTask['id'])
+                ->where('title', 'Task Assigned') // Look for the original assignment notification
+                ->orderBy('id', 'DESC')
+                ->first();
+
+            $notificationId = null;
+
+            if ($existingNotification) {
+                // Update the existing notification instead of creating a new one
+                $notificationsModel->update($existingNotification['id'], [
+                    'title' => $title,
+                    'message' => $message,
+                    'is_read' => false, // Mark as unread since it's a new update
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                $notificationId = $existingNotification['id'];
+                log_message('info', "Updated existing notification {$notificationId} for user {$oldUser['id']} about task reassignment");
+            } else {
+                // Create a new notification if no existing one found
+                $notificationData = [
+                    'user_id' => $oldUser['id'],
+                    'task_id' => $oldTask['id'],
+                    'title' => $title,
+                    'message' => $message,
+                    'is_read' => false
+                ];
+
+                $result = $notificationsModel->insert($notificationData);
+                if (!$result) {
+                    log_message('error', "Reassignment notification not created. Validation errors: " . json_encode($notificationsModel->errors()));
+                    $db->transRollback();
+                    return false;
+                }
+
+                $notificationId = $notificationsModel->getInsertID();
+                log_message('info', "Created new notification {$notificationId} for user {$oldUser['id']} about task reassignment");
+            }
+
+            // Get the notification
+            $notification = $notificationsModel->find($notificationId);
+
+            // Send to notification server
+            $sent = $this->sendToNotificationServer($oldTask, $notificationId);
+
+            if (!$sent) {
+                log_message('warning', "Created/updated notification {$notificationId} but failed to send to real-time server");
+            }
+
+            // Commit transaction
+            $db->transCommit();
+            return true;
+        } catch (\Exception $e) {
+            // Ensure transaction is rolled back
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
+            log_message('error', "Failed to create reassignment notification: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function notifyTaskAssignment($task)
+    {
+        return $this->createTaskNotification($task, 'assignment');
+    }
+    // Send notification when a task is assigned to a user
+    private function sendTaskAssignmentNotification($task)
+    {
+        return $this->createTaskNotification($task, 'assignment');
+    }
+    private function sendToNotificationServer($task, $notificationId = null)
+    {
+        try {
+            // Need to find the notification and the user
+            $notificationsModel = new \App\Models\NotificationsModel();
+            $usersModel = new \App\Models\UsersModel();
+
+            // Get the notification
+            $notification = null;
+            if ($notificationId) {
+                $notification = $notificationsModel->find($notificationId);
+                if (!$notification) {
+                    log_message('error', "Cannot send notification {$notificationId} - not found in database");
+                    return false;
+                }
+            } else {
+                $notification = $notificationsModel->where('user_id', $task['user_id'])
+                    ->where('task_id', $task['id'])
+                    ->orderBy('id', 'DESC')
+                    ->first();
+
+                if (!$notification) {
+                    log_message('error', "No notification found for task {$task['id']}, user {$task['user_id']}");
+                    return false;
+                }
+            }
+
+            // Get the user data
+            $user = $usersModel->find($notification['user_id']);
+            if (!$user) {
+                log_message('error', "User {$notification['user_id']} not found for notification {$notification['id']}");
+                return false;
+            }
+    
+            // Get notification server URL from environment
+            $notificationServerUrl = getenv('NOTIFICATION_SERVER_URL');
+            if (empty($notificationServerUrl)) {
+                $notificationServerUrl = 'http://localhost:3000'; // Default fallback
+            }
+
+            log_message('info', "Sending notification {$notification['id']} to server at {$notificationServerUrl}");
+
+            // Log the request payload for debugging
+            $payload = [
+                'notification_id' => (int)$notification['id'],
+                'user_id' => (int)$notification['user_id'],
+                'task_id' => (int)$notification['task_id'],
+                'title' => $notification['title'],
+                'message' => $notification['message'],
+                'is_read' => false
+            ];
+
+            log_message('debug', "Notification server payload: " . json_encode($payload));
+
+            // Send to notification server with explicit notification ID
+            $client = \Config\Services::curlrequest();
+            $response = $client->request(
+                'POST',
+                $notificationServerUrl . '/send-notification',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json'
+                    ],
+                    'json' => $payload,
+                    'timeout' => 5
+                ]
+            );
+
+            // Log the success response
+            $statusCode = $response->getStatusCode();
+            $responseBody = json_decode($response->getBody(), true);
+
+            log_message('info', "Notification server response for notification {$notification['id']}: HTTP {$statusCode}, Body: " . json_encode($responseBody));
+
+            return $statusCode >= 200 && $statusCode < 300;
+        } catch (\Exception $e) {
+            log_message('error', "Failed to send notification to server: " . $e->getMessage());
+            return false;
+        }
+    }
+    // Centralize Notification Creation
+    private function createTaskNotification($task, $notificationType, $additionalData = [])
+    {
+        try {
+            // Get user data
+            $usersModel = new \App\Models\UsersModel();
+            $user = $usersModel->find($task['user_id']);
+
+            if (!$user) {
+                log_message('error', "Cannot send notification: User {$task['user_id']} not found");
+                return false;
+            }
+
+            // Setup notification data based on type
+            $title = "";
+            $message = "";
+            $type = "";
+
+        switch ($notificationType) {
+                case 'assignment':
+                    $title = "Task Assigned";
+                    $message = "You have been assigned to task: {$task['title']}. Please check your tasks for details.";
+                    $type = "assignment";
+                    break;
+                case 'status_update':
+                    $newStatus = $additionalData['new_status'] ?? 'unknown';
+                    $title = "Task Status Updated";
+                    $message = "Status for task '{$task['title']}' has been updated to '{$newStatus}'.";
+                    $type = "status";
+                    break;
+                case 'priority_update':
+                    $newPriority = $additionalData['new_priority'] ?? 'unknown';
+                    $title = "Task Priority Updated";
+                    $message = "Priority for task '{$task['title']}' has been changed to '{$newPriority}'.";
+                    $type="priority";
+                    break;
+                case 'progress_update':
+                    $newProgress = $additionalData['new_progress'] ?? 0;
+                    $title = "Task Progress Updated";
+                    $message = "Progress for task '{$task['title']}' has been updated to {$newProgress}%.";
+                    $type = "progress";
+                    break;
+                case 'due_date_update':
+                    $newDueDate = $additionalData['new_due_date'] ?? 'not set';
+                    $formattedDate = $newDueDate != 'not set' ? date('M d, Y', strtotime($newDueDate)) : 'not set';
+                    $title = "Task Due Date Updated";
+                    $message = "Due date for task '{$task['title']}' has been updated to {$formattedDate}.";
+                    $type = "due_data";
+                    break;
+                case 'update':
+                    $title = "Task Updated";
+                    $message = "Task '{$task['title']}' has been updated. Please check for changes.";
+                    $type = "general";
+                    break;
+            }
+
+            // Start transaction
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            // Generate a unique signature for this notification to prevent duplicates
+            $notificationSignature = md5($user['id'] . $task['id'] . $title . $notificationType);
+
+            // Check if we've recently created this exact notification (within 15 seconds)
+            $notificationsModel = new \App\Models\NotificationsModel();
+            $existingNotification = $notificationsModel->where('user_id', $user['id'])
+                ->where('task_id', $task['id'])
+                ->where('title', $title)
+                ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-15 seconds')))
+                ->first();
+
+            if ($existingNotification) {
+                log_message('info', "Duplicate notification prevented for user {$user['id']} and task {$task['id']} (found existing ID: {$existingNotification['id']})");
+                $db->transRollback();
+                return true;
+            }
+
+            // Create notification data
+            $notificationData = [
+                'user_id' => $user['id'],
+                'task_id' => $task['id'],
+                'title' => $title,
+                'message' => $message,
+                'is_read' => false,
+                'type' => $type,
+            ];
+
+            // Insert notification
+            $result = $notificationsModel->insert($notificationData);
+            if (!$result) {
+                log_message('error', "Notification not created. Validation errors: " . json_encode($notificationsModel->errors()));
+                $db->transRollback();
+                return false;
+            }
+
+            // Get the new notification ID
+            $notificationId = $notificationsModel->getInsertID();
+
+            // Log the creation
+            log_message('info', "Notification {$notificationId} created for user {$user['id']} for task {$task['id']} of type {$notificationType}");
+
+            // Send to notification server with specific notification ID
+            $sent = $this->sendToNotificationServer($task, $notificationId);
+
+            if (!$sent) {
+                log_message('warning', "Created notification {$notificationId} but failed to send to real-time server");
+            }
+
+            // Commit transaction
+            $db->transCommit();
+            return true;
+        } catch (\Exception $e) {
+            // Ensure transaction is rolled back
+            if (isset($db) && $db->transStatus() === false) {
+                $db->transRollback();
+            }
+            log_message('error', "Failed to create task notification: " . $e->getMessage());
+            return false;
+        }
+    }
     private function respondWithJson($status, $msg, $data = null, $statusCode=200)
     {
     $response = [
