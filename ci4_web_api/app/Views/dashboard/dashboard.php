@@ -109,7 +109,7 @@
         </div>
         
         <!-- Upcoming Tasks (Due in Next 7 Days) -->
-         <div class="metric-card" id="upcoming-tasks-card">
+        <div class="metric-card" id="upcoming-tasks-card">
             <h3>Tasks Due in Next 7 Days</h3>
             <div class="total" id="upcoming-count">-</div>
             <p>Tasks Due Soon</p>
@@ -121,7 +121,25 @@
             <div class="view-all-link" id="view-all-upcoming" style="display: none;">
                 <a href="/task?due=upcoming">View All Upcoming Tasks</a>
             </div>
-         </div>
+        </div>
+
+        <!-- Team Completion Rates Comparison Card -->
+        <div class="metric-card" id="team-completion-card">
+            <h3>Team Completion Rates</h3>
+            <div class="total-wrapper">
+                <div class="total" id="teams-count">-</div>
+                <p>Teams</p>
+            </div>
+
+            <div class="team-metrics-container" id="team-metrics-container">
+                <div class="loading-spinner">Loading team metrics...</div>
+            </div>
+
+            <div class="view-all-link">
+                <a href="/team">View All Teams</a>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -252,10 +270,13 @@
         document.getElementById('medium-priority-count').textContent = '-';
         document.getElementById('low-priority-count').textContent = '-';
 
-    // Show loading state section for upcoming tasks
-    document.getElementById('upcoming-count').textContent = '-';
-    document.getElementById('upcoming-tasks-list').innerHTML = '<div class="loading-spinner">Loading upcoming tasks...</div>';
+        // Show loading state section for upcoming tasks
+        document.getElementById('upcoming-count').textContent = '-';
+        document.getElementById('upcoming-tasks-list').innerHTML = '<div class="loading-spinner">Loading upcoming tasks...</div>';
 
+        // Show loading state for team completion rates
+        document.getElementById('teams-count').textContent = '-';
+        document.getElementById('team-metrics-container').innerHTML = '<div class="loading-spinner">Loading team metrics...</div>';
 
 
         // Fetch dashboard metrics from API
@@ -270,7 +291,7 @@
                 if (data.status) {
                     // Update task metrics
                     updateTaskMetrics(data.data.tasks);
-                    
+
                     // Update priority distribution
                     updatePriorityDistribution(data.data.tasks);
 
@@ -279,6 +300,9 @@
 
                     // Update upcoming tasks
                     updateUpcomingTasks(data.data);
+
+                    // Fetch teams to display completion rates
+                    fetchTeamCompletionRates();
                 } else {
                     console.error('Failed to load dashboard metrics:', data.msg);
                     document.getElementById('total-tasks').textContent = 'Error loading data';
@@ -287,6 +311,8 @@
                     document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
                     document.getElementById('upcoming-count').textContent = 'Error';
                     document.getElementById('upcoming-tasks-list').innerHTML = '<div class="error-message">Error loading upcoming tasks</div>';
+                    document.getElementById('teams-count').textContent = 'Error';
+                    document.getElementById('team-metrics-container').innerHTML = '<div class="error-message">Error loading team metrics</div>';
                 }
             })
             .catch(error => {
@@ -297,25 +323,27 @@
                 document.getElementById('overdue-tasks-list').innerHTML = '<div class="error-message">Error loading overdue tasks</div>';
                 document.getElementById('upcoming-count').textContent = 'Error';
                 document.getElementById('upcoming-tasks-list').innerHTML = '<div class="error-message">Error loading upcoming tasks</div>';
+                document.getElementById('teams-count').textContent = 'Error';
+                document.getElementById('team-metrics-container').innerHTML = '<div class="error-message">Error loading team metrics</div>';
             });
     }
-    
+
     // Function to update task metrics (existing function)
     function updateTaskMetrics(tasksData) {
         // Set total tasks count
         const totalTasks = tasksData.total;
         document.getElementById('total-tasks').textContent = totalTasks;
-        
+
         // Initialize counters for each status
         let pendingCount = 0;
         let inProgressCount = 0;
         let completedCount = 0;
         let extensionCount = 0;
-        
+
         // Process status breakdown data
         tasksData.status_breakdown.forEach(status => {
             const count = parseInt(status.count);
-            
+
             switch (status.status) {
                 case 'pending':
                     pendingCount = count;
@@ -331,24 +359,24 @@
                     break;
             }
         });
-        
+
         // Update status counts
         document.getElementById('pending-count').textContent = pendingCount;
         document.getElementById('in-progress-count').textContent = inProgressCount;
         document.getElementById('completed-count').textContent = completedCount;
         document.getElementById('extension-count').textContent = extensionCount;
-        
+
         // Create horizontal bar chart showing status distribution
         const chartContainer = document.getElementById('tasks-chart');
         chartContainer.innerHTML = '';
-        
+
         if (totalTasks > 0) {
             // Calculate percentages
             const pendingPercentage = (pendingCount / totalTasks) * 100;
             const inProgressPercentage = (inProgressCount / totalTasks) * 100;
             const completedPercentage = (completedCount / totalTasks) * 100;
             const extensionPercentage = (extensionCount / totalTasks) * 100;
-            
+
             // Create chart segments
             if (pendingCount > 0) {
                 const pendingSegment = document.createElement('div');
@@ -357,7 +385,7 @@
                 pendingSegment.title = 'Pending: ' + pendingCount + ' tasks (' + pendingPercentage.toFixed(1) + '%)';
                 chartContainer.appendChild(pendingSegment);
             }
-            
+
             if (inProgressCount > 0) {
                 const inProgressSegment = document.createElement('div');
                 inProgressSegment.className = 'chart-segment-in-progress';
@@ -365,7 +393,7 @@
                 inProgressSegment.title = 'In Progress: ' + inProgressCount + ' tasks (' + inProgressPercentage.toFixed(1) + '%)';
                 chartContainer.appendChild(inProgressSegment);
             }
-            
+
             if (completedCount > 0) {
                 const completedSegment = document.createElement('div');
                 completedSegment.className = 'chart-segment-completed';
@@ -373,7 +401,7 @@
                 completedSegment.title = 'Completed: ' + completedCount + ' tasks (' + completedPercentage.toFixed(1) + '%)';
                 chartContainer.appendChild(completedSegment);
             }
-            
+
             if (extensionCount > 0) {
                 const extensionSegment = document.createElement('div');
                 extensionSegment.className = 'chart-segment-request-extension';
@@ -684,6 +712,141 @@
             noTasks.textContent = 'No tasks due in the next 7 days.';
             listContainer.appendChild(noTasks);
         }
+    }
+    // Function to fetch teams and their completion rates
+    function fetchTeamCompletionRates() {
+        // fetch all teams
+        fetch('/teams/with-count')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch teams');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status && data.data && data.data.length > 0) {
+                    const teams = data.data;
+                    document.getElementById('teams-count').textContent = teams.length;
+
+                    // Create promises for fetching metrics for each team
+                    const metricsPromises = teams.map(team =>
+                        fetch(`/teams/${team.id}/metrics`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Failed to fetch metrics for team ${team.id}`);
+                                }
+                                return response.json();
+                            })
+                            .then(metricsData => {
+                                if (metricsData.status) {
+                                    return {
+                                        team: team,
+                                        metrics: metricsData.data
+                                    };
+                                }
+                                return null;
+                            })
+                            .catch(error => {
+                                console.error(`Error fetching metrics for team ${team.id}:`, error);
+                                return null;
+                            })
+                    );
+                    // Wait for all metrics to be fetched
+                    return Promise.all(metricsPromises);
+                } else {
+                    // No teams found
+                    document.getElementById('teams-count').textContent = '0';
+                    document.getElementById('team-metrics-container').innerHTML = '<div class="no-teams-message">No teams found.</div>';
+                    return [];
+                }
+            })
+            .then(teamMetrics => {
+                // Filter out any failed requests
+                const validTeamMetrics = teamMetrics.filter(item => item !== null);
+
+                if (validTeamMetrics.length > 0) {
+                    // Display team completion rates
+                    displayTeamCompletionRates(validTeamMetrics);
+                } else if (teamMetrics.length > 0) {
+                    // Team exist but no valid metrics
+                    document.getElementById('team-metrics-container').innerHTML = '<div class="no-teams-message">Could not load metrics for teams.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching team data:', error);
+                document.getElementById('teams-count').textContent = 'Error';
+                document.getElementById('team-metrics-container').innerHTML = '<div class="error-message">Error loading team data</div>';
+            });
+    }
+    // Function to display team completion rates
+    function displayTeamCompletionRates(teamMetrics) {
+        const container = document.getElementById('team-metrics-container');
+        container.innerHTML = '';
+
+        // Sort teams by completion rate (highest first)
+        teamMetrics.sort((a, b) => {
+            const rateA = a.metrics.team_completion_rate || 0;
+            const rateB = b.metrics.team_completion_rate || 0;
+            return rateB - rateA;
+        });
+
+        // Create bars for each team
+        teamMetrics.forEach(item => {
+            const { team, metrics } = item;
+            const completionRate = metrics.team_completion_rate || 0;
+
+            // Create team completion bar
+            const teamBar = document.createElement('div');
+            teamBar.className = 'team-completion-bar';
+
+            // Add team name and completion rate
+            const teamNameDiv = document.createElement('div');
+            teamNameDiv.className = 'team-name';
+            teamNameDiv.innerHTML = `
+                <span class="team-name-text">${team.name}</span>
+                <span class="completion-rate">${completionRate}</span>
+            `;
+
+            // Create progress bar
+            const progressContainer = document.createElement('div');
+            progressContainer.className = 'progress-bar-container';
+
+            const progressFill = document.createElement('div');
+            progressFill.className = 'progress-bar-fill';
+            progressFill.style.width = `${completionRate}%`;
+
+            // Set color based on completion rate
+            if (completionRate < 30) {
+                progressFill.style.backgroundColor = '#dc3545'; // red
+            } else if (completionRate < 70) {
+                progressFill.style.backgroundColor = '#ffc107'; // yellow
+            } else {
+                progressFill.style.backgroundColor = '#28a745'; // green
+            }
+
+            // Add tool tip with additional info
+            const memberCount = team.member_count || 0;
+            const overdueCount = metrics.overdue_tasks || 0;
+
+            teamBar.title = `
+                Team: ${team.name}
+                Members: ${memberCount}
+                Completion Rate: ${completionRate}%
+                Overdue Tasks: ${overdueCount}
+            `;
+
+            // Add click event to navigate to team details
+            teamBar.style.cursor = 'pointer';
+            teamBar.addEventListener('click', () => {
+                window.location.href = `/team_detail?team_id=${team.id}`;
+            });
+
+            // Assemble the team bar
+            progressContainer.appendChild(progressFill);
+            teamBar.appendChild(teamNameDiv);
+            teamBar.appendChild(progressContainer);
+            container.appendChild(teamBar);
+        })
     }
 </script>
 <?= $this->endSection() ?>
