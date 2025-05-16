@@ -59,26 +59,7 @@ function renderNotificationItem(notification) {
     }
 
     // Determine icon based on notification type
-    let iconHtml = '';
-    switch (notification.type) {
-        case 'assignment':
-            iconHtml = '<i class="fas fa-clipboard-check text-primary"></i>';
-            break;
-        case 'status':
-            iconHtml = '<i class="fas fa-tasks text-info"></i>';
-            break;
-        case 'priority':
-            iconHtml = '<i class="fas fa-flag text-warning"></i>';
-            break;
-        case 'progress':
-            iconHtml = '<i class="fas fa-chart-line text-success"></i>';
-            break;
-        case 'due_date':
-            iconHtml = '<i class="fas fa-calendar-alt text-danger"></i>';
-            break;
-        default:
-            iconHtml = '<i class="fas fa-bell text-secondary"></i>';
-    }
+    let iconHtml = getNotificationTypeIcon(notification.type);
 
     // Format time ago
     const timeAgo = formatTimeAgo(new Date(notification.created_at));
@@ -104,6 +85,51 @@ function renderNotificationItem(notification) {
     });
 
     return item;
+}
+
+// Mark notification as read
+function markNotificationAsRead(notificationId) {
+    // Update local state immediately for better UX
+    const notification = notifications.find(n => n.id == notificationId);
+    if (notification) {
+        notification.is_read = true;
+        updateNotificationUI();
+    }
+
+    // Call API to update server
+    fetch(`/admin/notifications/mark-read/${notificationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.status) {
+                console.error('Failed to mark notification as read:', data.msg);
+            }
+        })
+        .catch(error => {
+            console.error('Error marking notification as read:', error);
+        });
+}
+
+// Helper function to get appropriate icon for notification type
+function getNotificationTypeIcon(type) {
+    switch (type) {
+        case 'assignment':
+            return '<i class="fas fa-clipboard-check text-primary"></i>';
+        case 'status':
+            return '<i class="fas fa-tasks text-info"></i>';
+        case 'priority':
+            return '<i class="fas fa-flag text-warning"></i>';
+        case 'progress':
+            return '<i class="fas fa-chart-line text-success"></i>';
+        case 'due_date':
+            return '<i class="fas fa-calendar-alt text-danger"></i>';
+        default:
+            return '<i class="fas fa-bell text-secondary"></i>';
+    }
 }
 
 // Format time ago
@@ -150,6 +176,11 @@ function setupNotificationInteractions() {
     bell.addEventListener('click', function (e) {
         e.stopPropagation();
         dropdown.classList.toggle('show');
+
+        // When opening dropdown, check for new notifications
+        if (dropdown.classList.contains('show')) {
+            fetchInitialNotifications();
+        }
     });
 
     // Close dropdown when clicking outside

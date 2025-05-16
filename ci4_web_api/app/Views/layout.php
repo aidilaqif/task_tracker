@@ -42,11 +42,12 @@
 <body>
     <!-- Include Sidebar -->
     <?= $this->include('sidebar') ?>
-    
     <!-- Main Content Wrapper -->
     <div class="content-wrapper">
         <!-- Page Header -->
         <header class="content-header">
+
+            <div class="container">
             <!-- Notification Bell -->
             <div class="notification-bell-container" id="notificationBell">
                 <i class="fas fa-bell notification-bell"></i>
@@ -70,7 +71,6 @@
                     </div>
                 </div>
             </div>
-            <div class="container">
                 <h1><?= $header ?? $title ?? 'Task Tracker' ?></h1>
                 <?php if(session()->has('error')): ?>
                     <div class="alert alert-danger">

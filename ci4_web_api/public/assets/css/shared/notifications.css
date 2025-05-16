@@ -15,8 +15,8 @@
 
 .notification-badge {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: -5px;
+    right: -5px;
     background-color: #dc3545;
     color: white;
     border-radius: 50%;
@@ -26,9 +26,10 @@
     text-align: center;
     line-height: 18px;
     font-weight: bold;
-    display: show;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-
 /* Notification Dropdown */
 .notification-dropdown {
     position: absolute;
