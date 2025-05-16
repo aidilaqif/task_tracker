@@ -25,6 +25,14 @@ function initSocketIO(io) {
 
                 utils.log('info', `User ${userId} authenticated on socket ${socket.id}`);
 
+                // Check if this is an admin user (for debugging)
+                const db = require('../db');
+                const [rows] = await db.pool.query('SELECT role FROM users WHERE id = ?', [userId]);
+                const isAdmin = rows.length > 0 && rows[0].role === 'admin';
+                if (isAdmin) {
+                    utils.log('info', `Admin user ${userId} connected - will receive all system notifications`);
+                }
+
                 // Store socket ID mapped to user ID (replacing any existing connection)
                 connectedUsers.set(userId, socket.id);
 
@@ -32,7 +40,11 @@ function initSocketIO(io) {
                 socket.join(`user-${userId}`);
 
                 // Let client know they've been authenticated
-                socket.emit('authenticated', { userId, timestamp: new Date().toISOString() });
+                socket.emit('authenticated', {
+                    userId,
+                    timestamp: new Date().toISOString(),
+                    isAdmin: isAdmin
+                });
 
                 // Fetch and send any unread notifications to this user
                 const unreadNotifications = await db.getUnreadNotifications(userId);
@@ -50,11 +62,6 @@ function initSocketIO(io) {
 
                     // Send all unread notifications in a batch
                     io.to(`user-${userId}`).emit('unread-notifications', processedNotifications);
-
-                    // Also send each notification individually
-                    for (const notification of processedNotifications) {
-                        io.to(`user-${userId}`).emit('new-notification', notification);
-                    }
                 }
             } catch (error) {
                 utils.log('error', `Authentication error for socket ${socket.id}:`, error);

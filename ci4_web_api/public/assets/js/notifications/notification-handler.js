@@ -8,6 +8,8 @@ function initializeSocket() {
     // Get server URL - ideally this should be set in a config
     const serverUrl = window.notificationServerUrl || 'http://localhost:3000';
 
+    console.log('Connecting to notification server at:', serverUrl);
+
     // Initialize Socket.IO connection
     socket = io(serverUrl, {
         path: '/socket.io',
@@ -22,15 +24,21 @@ function initializeSocket() {
 
     socket.on('disconnect', () => {
         console.log('Disconnected from notification server');
+        // Try to reconnect after a delay
+        setTimeout(() => {
+            console.log('Attempting to reconnect...');
+            socket.connect();
+        }, 5000);
     });
 
-    socket.on('error', (error) => {
-        console.error('Socket connection error:', error);
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
     });
 
     // Handle notification events
     socket.on('new-notification', (notification) => {
         console.log('New notification received:', notification);
+        playNotificationSound();
         addNotification(notification);
     });
 
@@ -52,10 +60,12 @@ function authenticateUser() {
     // Get user ID from a global variable set in layout.php
     const userId = window.userId;
 
-    if (!userId) {
+    if (!userId || userId <= 0) {
         console.error('User ID not available for authentication');
         return;
     }
+
+    console.log('Authenticating user with ID:', userId);
 
     // Emit authentication event with user ID
     socket.emit('authenticate', userId);
@@ -64,10 +74,26 @@ function authenticateUser() {
     socket.once('authenticated', (data) => {
         console.log('Authentication successful:', data);
     });
+
+    socket.once('error', (error) => {
+        console.error('Authentication error:', error);
+    });
+}
+
+// Optional: Play a notification sound
+function playNotificationSound() {
+    const audio = new Audio('/assets/sounds/notification.mp3');
+    audio.play().catch(e => console.log('Sound play prevented by browser policy'));
 }
 
 // Add notification to list
 function addNotification(notification) {
+    // Validate notification object
+    if (!notification || !notification.id) {
+        console.error('Invalid notification object:', notification);
+        return;
+    }
+
     // Check if notification already exists
     const existingIndex = notifications.findIndex(n => n.id === notification.id);
 
@@ -86,6 +112,13 @@ function addNotification(notification) {
 
     // Update UI
     updateNotificationUI();
+
+    // If we're on the notifications page, refresh the list
+    if (window.location.pathname === '/notifications') {
+        if (typeof loadNotifications === 'function') {
+            loadNotifications();
+        }
+    }
 }
 
 // Get unread notification count
@@ -185,10 +218,14 @@ function fetchInitialNotifications() {
 }
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Socket.IO
-    const socket = initializeSocket();
+    if (window.userId && window.userId > 0) {
+        // Initialize Socket.IO
+        const socket = initializeSocket();
 
-    // Fetch initial data
-    fetchUnreadCount();
-    fetchInitialNotifications();
+        // Fetch initial data for faster UI updates
+        fetchUnreadCount();
+        fetchInitialNotifications();
+    } else {
+        console.log('User not logged in, skipping Socket.IO initialization');
+    }
 });
