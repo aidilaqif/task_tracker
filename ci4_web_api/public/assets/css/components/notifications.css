@@ -1,0 +1,191 @@
+/* Notifications Page Styles */
+.notifications-container {
+    margin-bottom: 30px;
+}
+
+.notifications-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.notifications-list {
+    margin-top: 20px;
+}
+
+.notification-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.notification-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.notification-card.unread {
+    border-left: 4px solid #007bff;
+    background-color: #f0f7ff;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #212529;
+}
+
+.notification-time {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.notification-message {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.notification-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-type {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.notification-type.assignment {
+    background-color: #cfe2ff;
+    color: #0d6efd;
+}
+
+.notification-type.status {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.notification-type.priority {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.notification-type.progress {
+    background-color: #d7f3e3;
+    color: #0a6b39;
+}
+
+.notification-type.due_date {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.notification-type.general {
+    background-color: #e2e3e5;
+    color: #41464b;
+}
+
+.notification-actions button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    color: #6c757d;
+    transition: color 0.2s;
+}
+
+.notification-actions button:hover {
+    color: #007bff;
+}
+
+.notification-actions .view-task {
+    color: #007bff;
+}
+
+.notification-actions .view-task:hover {
+    text-decoration: underline;
+}
+
+.notification-actions .mark-read {
+    color: #28a745;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 50px 0;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 50px 0;
+    color: #6c757d;
+}
+
+.loading-spinner i {
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+
+/* Pagination styles */
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: inline-flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pagination li {
+    margin: 0 5px;
+}
+
+.pagination a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    color: #007bff;
+}
+
+.pagination a:hover {
+    background-color: #f8f9fa;
+}
+
+.pagination li.active a {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.pagination li.disabled a {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+}

@@ -1,6 +1,7 @@
 // Manages notification data and Socket.IO connection
 // Store notifications
 let notifications = [];
+let socket;
 
 // Initialize Socket.IO connection
 function initializeSocket() {
@@ -8,7 +9,7 @@ function initializeSocket() {
     const serverUrl = window.notificationServerUrl || 'http://localhost:3000';
 
     // Initialize Socket.IO connection
-    const socket = io(serverUrl, {
+    socket = io(serverUrl, {
         path: '/socket.io',
         transports: ['websocket', 'polling']
     });
@@ -166,21 +167,22 @@ function fetchInitialNotifications() {
     fetch('/admin/notifications?limit=5&unread=1')
         .then(response => response.json())
         .then(data => {
-            if (data.status && data.data) {
-                // Add to notification list
-                data.data.forEach(notification => {
+            if (data.status && data.data && data.data.notifications) {
+                // Updated to use data.data.notifications instead of data.data
+                data.data.notifications.forEach(notification => {
                     addNotification(notification);
                 });
 
                 // Update UI
                 updateNotificationUI();
+            } else {
+                console.log('No notifications found or empty response');
             }
         })
         .catch(error => {
             console.error('Error fetching initial notifications:', error);
         });
 }
-
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize Socket.IO

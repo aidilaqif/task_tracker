@@ -17,6 +17,7 @@ $routes->get('/', 'WebUIController::dashboard', ['filter' => 'auth']);
 $routes->get('/dashboard', 'WebUIController::dashboard', ['filter' => 'auth']);
 $routes->get('/team', 'WebUIController::team', ['filter' => 'auth']);
 $routes->get('/task', 'WebUIController::task', ['filter' => 'auth']);
+$routes->get('/notifications', 'WebUIController::notifications', ['filter' => 'auth']);
 $routes->get('/team_detail', 'WebUIController::teamDetail', ['filter' => 'auth']);
 $routes->get('/task_detail', 'WebUIController::taskDetail', ['filter' => 'auth']);
 $routes->get('/user', 'WebUIController::user', ['filter' => 'auth']);

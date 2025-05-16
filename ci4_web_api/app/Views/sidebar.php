@@ -29,6 +29,11 @@
                 <span>Users</span>
             </a>
         </li>
+        <li class="<?= ($active_menu ?? '') == 'notifications' ? 'active' : '' ?>">
+            <a href="<?= site_url('/notifications') ?>">
+                <span>Notifications</span>
+            </a>
+        </li>
         <?php if(session()->get('isLoggedIn')): ?>
         <li class="logout-item">
             <a href="<?= site_url('/logout') ?>">
