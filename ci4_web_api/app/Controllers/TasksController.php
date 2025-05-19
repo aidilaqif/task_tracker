@@ -597,6 +597,7 @@ class TasksController extends BaseController
                     403
                 );
             }
+
             // Store old progress for notification purposes
             $oldProgress = $task['progress'] ?? 0;
 
@@ -618,10 +619,21 @@ class TasksController extends BaseController
 
             if ($this->tasksModel->update($id, $data)) {
                 $updatedTask = $this->tasksModel->find($id);
+
                 // Add isAssignedToYou flag if user_id is provided
                 if ($requestingUserId) {
                     $updatedTask['isAssignedToYou'] = ($requestingUserId == $updatedTask['user_id']);
                 }
+
+                // Create progress update notification
+                if ($oldProgress != $progress) {
+                    $this->createTaskNotification($updatedTask, 'progress_update', [
+                        'new_progress' => $progress,
+                        'old_progress' => $oldProgress
+                    ]);
+                    log_message('info', "Created progress notification: Old progress: {$oldProgress}, New progress: {$progress}");
+                }
+
                 // Create a separate notification if status was auto-updated
                 if ($statusChanged) {
                     $this->createTaskNotification($updatedTask, 'status_update', [
@@ -642,6 +654,7 @@ class TasksController extends BaseController
             if (isset($db) && $db->transStatus() === false) {
                 $db->transRollback();
             }
+            log_message('error', "Error updating task progress: " . $e->getMessage());
             return $this->respondWithJson(false, "Internal Server Error", $e->getMessage(), 500);
         }
     }
@@ -964,6 +977,7 @@ class TasksController extends BaseController
     {
         return $this->createTaskNotification($task, 'assignment');
     }
+    // Send notification to the notification server
     private function sendToNotificationServer($task, $notificationId = null)
     {
         try {
@@ -980,15 +994,18 @@ class TasksController extends BaseController
                     return false;
                 }
             } else {
-                $notification = $notificationsModel->where('user_id', $task['user_id'])
-                    ->where('task_id', $task['id'])
+                // This fallback is less reliable since we now create multiple notifications
+                log_message('warning', "No notification ID provided to sendToNotificationServer, trying to find by task");
+                $notification = $notificationsModel->where('task_id', $task['id'])
                     ->orderBy('id', 'DESC')
                     ->first();
 
                 if (!$notification) {
-                    log_message('error', "No notification found for task {$task['id']}, user {$task['user_id']}");
+                    log_message('error', "No notification found for task {$task['id']} - cannot send to notification server");
                     return false;
                 }
+
+                $notificationId = $notification['id'];
             }
 
             // Get the user data
@@ -997,14 +1014,14 @@ class TasksController extends BaseController
                 log_message('error', "User {$notification['user_id']} not found for notification {$notification['id']}");
                 return false;
             }
-    
+
             // Get notification server URL from environment
             $notificationServerUrl = getenv('NOTIFICATION_SERVER_URL');
             if (empty($notificationServerUrl)) {
                 $notificationServerUrl = 'http://localhost:3000'; // Default fallback
             }
 
-            log_message('info', "Sending notification {$notification['id']} to server at {$notificationServerUrl}");
+            log_message('info', "Sending notification {$notification['id']} to server at {$notificationServerUrl} for user {$user['id']}");
 
             // Log the request payload for debugging
             $payload = [
@@ -1013,7 +1030,8 @@ class TasksController extends BaseController
                 'task_id' => (int)$notification['task_id'],
                 'title' => $notification['title'],
                 'message' => $notification['message'],
-                'is_read' => false
+                'is_read' => false,
+                'type' => $notification['type'] ?? 'general'
             ];
 
             log_message('debug', "Notification server payload: " . json_encode($payload));
@@ -1049,21 +1067,45 @@ class TasksController extends BaseController
     private function createTaskNotification($task, $notificationType, $additionalData = [])
     {
         try {
-            // Get user data
-            $usersModel = new \App\Models\UsersModel();
-            $user = $usersModel->find($task['user_id']);
+            // Determine if notification should go to admins or task owner
+            $notifyAdmins = false;
+            $notifyTaskOwner = false;
 
-            if (!$user) {
-                log_message('error', "Cannot send notification: User {$task['user_id']} not found");
-                return false;
+            switch ($notificationType) {
+                case 'assignment':
+                case 'reassignment':
+                case 'due_date_update':
+                    // These notifications go to the task owner
+                    $notifyTaskOwner = true;
+                    break;
+
+                case 'status_update':
+                case 'progress_update':
+                case 'priority_update':
+                    // These notifications go to admins
+                    $notifyAdmins = true;
+                    break;
+
+                default:
+                    // Default to the task owner
+                    $notifyTaskOwner = true;
+                    break;
             }
 
-            // Setup notification data based on type
+            // Get user/admin data
+            $usersModel = new \App\Models\UsersModel();
+            $notificationsModel = new \App\Models\NotificationsModel();
+
+            // Start transaction
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            // Setup basic notification data based on type
             $title = "";
             $message = "";
             $type = "";
 
-        switch ($notificationType) {
+            switch ($notificationType) {
                 case 'assignment':
                     $title = "Task Assigned";
                     $message = "You have been assigned to task: {$task['title']}. Please check your tasks for details.";
@@ -1083,8 +1125,9 @@ class TasksController extends BaseController
                     break;
                 case 'progress_update':
                     $newProgress = $additionalData['new_progress'] ?? 0;
+                    $oldProgress = $additionalData['old_progress'] ?? 0;
                     $title = "Task Progress Updated";
-                    $message = "Progress for task '{$task['title']}' has been updated to {$newProgress}%.";
+                    $message = "Progress for task '{$task['title']}' has been updated from {$oldProgress}% to {$newProgress}%.";
                     $type = "progress";
                     break;
                 case 'due_date_update':
@@ -1092,7 +1135,7 @@ class TasksController extends BaseController
                     $formattedDate = $newDueDate != 'not set' ? date('M d, Y', strtotime($newDueDate)) : 'not set';
                     $title = "Task Due Date Updated";
                     $message = "Due date for task '{$task['title']}' has been updated to {$formattedDate}.";
-                    $type = "due_data";
+                    $type = "due_date";
                     break;
                 case 'update':
                     $title = "Task Updated";
@@ -1101,61 +1144,94 @@ class TasksController extends BaseController
                     break;
             }
 
-            // Start transaction
-            $db = \Config\Database::connect();
-            $db->transBegin();
+            $notificationIds = [];
 
-            // Generate a unique signature for this notification to prevent duplicates
-            $notificationSignature = md5($user['id'] . $task['id'] . $title . $notificationType);
+            // Create notification for task owner if needed
+            if ($notifyTaskOwner) {
+                $taskOwner = $usersModel->find($task['user_id']);
 
-            // Check if we've recently created this exact notification (within 15 seconds)
-            $notificationsModel = new \App\Models\NotificationsModel();
-            $existingNotification = $notificationsModel->where('user_id', $user['id'])
-                ->where('task_id', $task['id'])
-                ->where('title', $title)
-                ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-15 seconds')))
-                ->first();
+                if ($taskOwner) {
+                    // Create notification signature to prevent duplicates
+                    $notificationSignature = md5($taskOwner['id'] . $task['id'] . $title . $notificationType);
 
-            if ($existingNotification) {
-                log_message('info', "Duplicate notification prevented for user {$user['id']} and task {$task['id']} (found existing ID: {$existingNotification['id']})");
-                $db->transRollback();
-                return true;
+                    // Check for recent duplicate
+                    $existingNotification = $notificationsModel->where('user_id', $taskOwner['id'])
+                        ->where('task_id', $task['id'])
+                        ->where('title', $title)
+                        ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-15 seconds')))
+                        ->first();
+
+                    if (!$existingNotification) {
+                        // Create owner notification
+                        $notificationData = [
+                            'user_id' => $taskOwner['id'],
+                            'task_id' => $task['id'],
+                            'title' => $title,
+                            'message' => $message,
+                            'is_read' => false,
+                            'type' => $type,
+                        ];
+
+                        $result = $notificationsModel->insert($notificationData);
+                        if ($result) {
+                            $notificationIds[] = $notificationsModel->getInsertID();
+                            log_message('info', "Created notification for task owner {$taskOwner['id']} for task {$task['id']}");
+                        }
+                    } else {
+                        log_message('info', "Skipped duplicate notification for task owner {$taskOwner['id']}");
+                    }
+                }
             }
 
-            // Create notification data
-            $notificationData = [
-                'user_id' => $user['id'],
-                'task_id' => $task['id'],
-                'title' => $title,
-                'message' => $message,
-                'is_read' => false,
-                'type' => $type,
-            ];
+            // Create notifications for all admins if needed
+            if ($notifyAdmins) {
+                // Get all admin users
+                $admins = $usersModel->where('role', 'admin')->findAll();
 
-            // Insert notification
-            $result = $notificationsModel->insert($notificationData);
-            if (!$result) {
-                log_message('error', "Notification not created. Validation errors: " . json_encode($notificationsModel->errors()));
-                $db->transRollback();
-                return false;
-            }
+                foreach ($admins as $admin) {
+                    // Create notification signature
+                    $notificationSignature = md5($admin['id'] . $task['id'] . $title . $notificationType);
 
-            // Get the new notification ID
-            $notificationId = $notificationsModel->getInsertID();
+                    // Check for recent duplicate
+                    $existingNotification = $notificationsModel->where('user_id', $admin['id'])
+                        ->where('task_id', $task['id'])
+                        ->where('title', $title)
+                        ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-15 seconds')))
+                        ->first();
 
-            // Log the creation
-            log_message('info', "Notification {$notificationId} created for user {$user['id']} for task {$task['id']} of type {$notificationType}");
+                    if (!$existingNotification) {
+                        // Create admin notification with modified message
+                        $adminMessage = str_replace("You have been", "User {$task['user_id']}", $message);
 
-            // Send to notification server with specific notification ID
-            $sent = $this->sendToNotificationServer($task, $notificationId);
+                        $notificationData = [
+                            'user_id' => $admin['id'],
+                            'task_id' => $task['id'],
+                            'title' => $title,
+                            'message' => $adminMessage,
+                            'is_read' => false,
+                            'type' => $type,
+                        ];
 
-            if (!$sent) {
-                log_message('warning', "Created notification {$notificationId} but failed to send to real-time server");
+                        $result = $notificationsModel->insert($notificationData);
+                        if ($result) {
+                            $notificationIds[] = $notificationsModel->getInsertID();
+                            log_message('info', "Created notification for admin {$admin['id']} for task {$task['id']}");
+                        }
+                    } else {
+                        log_message('info', "Skipped duplicate notification for admin {$admin['id']}");
+                    }
+                }
             }
 
             // Commit transaction
             $db->transCommit();
-            return true;
+
+            // Send to notification server for each created notification
+            foreach ($notificationIds as $notificationId) {
+                $this->sendToNotificationServer($task, $notificationId);
+            }
+
+            return !empty($notificationIds);
         } catch (\Exception $e) {
             // Ensure transaction is rolled back
             if (isset($db) && $db->transStatus() === false) {

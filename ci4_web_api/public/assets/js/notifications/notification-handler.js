@@ -13,7 +13,12 @@ function initializeSocket() {
     // Initialize Socket.IO connection
     socket = io(serverUrl, {
         path: '/socket.io',
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000
     });
 
     // Handle socket connection events
@@ -22,8 +27,12 @@ function initializeSocket() {
         authenticateUser();
     });
 
-    socket.on('disconnect', () => {
-        console.log('Disconnected from notification server');
+    socket.on('disconnect', (reason) => {
+        console.log('Disconnected from notification server:', reason);
+
+        if (reason === 'io server disconnect') {
+            socket.connect();
+        }
         // Try to reconnect after a delay
         setTimeout(() => {
             console.log('Attempting to reconnect...');
@@ -228,5 +237,12 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchInitialNotifications();
     } else {
         console.log('User not logged in, skipping Socket.IO initialization');
+    }
+});
+
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && socket && !socket.connected) {
+        console.log('Page became visible, reconnecting socket...');
+        socket.connect();
     }
 });

@@ -43,16 +43,37 @@ function updateNotificationDropdown() {
     }
 
     // Add notifications to dropdown
+
+    // Create a Map to track notifications by task and type
+    const notificationMap = new Map();
+
+    // Process notifications
     dropdownNotifications.forEach(notification => {
-        const item = renderNotificationItem(notification);
-        list.appendChild(item);
+        // Create a key for similar notifications
+        const key = `${notification.task_id}-${notification.type}`;
+
+        // Only keep the most recent notification for each task/type combination
+        if (!notificationMap.has(key) ||
+            new Date(notification.created_at) > new Date(notificationMap.get(key).created_at)) {
+            notificationMap.set(key, notification);
+        }
     });
+
+    // Render unique notifications
+    Array.from(notificationMap.values())
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .forEach(notification => {
+            const item = renderNotificationItem(notification);
+            list.appendChild(item);
+        });
 }
 // Render notification item
 function renderNotificationItem(notification) {
+    // Create notification item element
     const item = document.createElement('div');
     item.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
     item.dataset.id = notification.id;
+
     if (notification.task_id) {
         item.dataset.taskId = notification.task_id;
     }
@@ -74,12 +95,24 @@ function renderNotificationItem(notification) {
 
     // Add click handler
     item.addEventListener('click', function () {
-        // Mark as read
-        markNotificationAsRead(notification.id);
+        try {
+            // Verify notification ID is valid before proceeding
+            const notificationId = this.dataset.id;
+            if (!notificationId) {
+                console.error('Missing notification ID');
+                return;
+            }
 
-        // Navigate to related task if it has task_id
-        if (notification.task_id) {
-            window.location.href = `/task_detail?task_id=${notification.task_id}`;
+            // Mark as read
+            markNotificationAsRead(notificationId);
+
+            // Navigate to related task if it has task_id
+            const taskId = this.dataset.taskId;
+            if (taskId) {
+                window.location.href = `/task_detail?task_id=${taskId}`;
+            }
+        } catch (error) {
+            console.error('Error handling notification click:', error);
         }
     });
 
@@ -88,29 +121,44 @@ function renderNotificationItem(notification) {
 
 // Mark notification as read
 function markNotificationAsRead(notificationId) {
-    // Update local state immediately for better UX
-    const notification = notifications.find(n => n.id == notificationId);
-    if (notification) {
-        notification.is_read = true;
-        updateNotificationUI();
-    }
-
-    // Call API to update server
-    fetch(`/admin/notifications/mark-read/${notificationId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
+    try {
+        // Validate notificationId
+        if (!notificationId) {
+            console.error('Invalid notification ID');
+            return;
         }
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.status) {
-                console.error('Failed to mark notification as read:', data.msg);
+
+        // Update local state immediately for better UX
+        const notification = notifications.find(n => n.id == notificationId);
+        if (notification) {
+            notification.is_read = true;
+            updateNotificationUI();
+        }
+
+        // Call API to update server
+        fetch(`/admin/notifications/mark-read/${notificationId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             }
         })
-        .catch(error => {
-            console.error('Error marking notification as read:', error);
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.status) {
+                    console.error('Failed to mark notification as read:', data.msg);
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notification as read:', error);
+            });
+    } catch (error) {
+        console.error('Exception in markNotificationAsRead:', error);
+    }
 }
 
 // Helper function to get appropriate icon for notification type
