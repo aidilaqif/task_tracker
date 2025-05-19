@@ -101,7 +101,20 @@
         window.userId = <?= session()->get('user_id') ?? 0 ?>;
         window.notificationServerUrl = '<?= getenv('NOTIFICATION_SERVER_URL') ?? 'http://localhost:3000' ?>';
     </script>
-    <script src="<?= base_url('assets/js/notifications/notification-system.js') ?>"></script>
+    <script src="<?= base_url('assets/js/notifications/notification-bridge.js') ?>"></script>
+    <!-- Manually trigger notification check on page load -->
+    <script>
+        // Force a notification check after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Allow time for NotificationBridge to initialize
+            setTimeout(function() {
+            if (typeof NotificationBridge !== 'undefined' && NotificationBridge.fetchNotifications) {
+                console.log('Forcing initial notification check');
+                NotificationBridge.fetchNotifications();
+            }
+            }, 2000);
+        });
+    </script>
 
 </body>
 </html>
