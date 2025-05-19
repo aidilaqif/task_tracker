@@ -101,8 +101,7 @@
         window.userId = <?= session()->get('user_id') ?? 0 ?>;
         window.notificationServerUrl = '<?= getenv('NOTIFICATION_SERVER_URL') ?? 'http://localhost:3000' ?>';
     </script>
-    <script src="<?= base_url('assets/js/notifications/notification-handler.js') ?>"></script>
-    <script src="<?= base_url('assets/js/notifications/notification-ui.js') ?>"></script>
+    <script src="<?= base_url('assets/js/notifications/notification-system.js') ?>"></script>
 
 </body>
 </html>
