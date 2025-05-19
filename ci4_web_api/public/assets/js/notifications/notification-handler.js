@@ -102,7 +102,7 @@ function addNotification(notification) {
         notifications[existingIndex] = notification;
     } else {
         // Add new notification
-        notifications.unshift(notification);
+        notifications.unshift(notification); // Add to beginning
     }
 
     // Sort by created date (newest first)
@@ -110,15 +110,8 @@ function addNotification(notification) {
         return new Date(b.created_at) - new Date(a.created_at);
     });
 
-    // Update UI
+    // Update UI (badge and dropdown)
     updateNotificationUI();
-
-    // If we're on the notifications page, refresh the list
-    if (window.location.pathname === '/notifications') {
-        if (typeof loadNotifications === 'function') {
-            loadNotifications();
-        }
-    }
 }
 
 // Get unread notification count
@@ -126,6 +119,16 @@ function getUnreadCount() {
     return notifications.filter(n => !n.is_read).length;
 }
 
+// Update the badge to show the current unread count
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+
+    const count = getUnreadCount();
+
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+}
 // Mark notification as read
 function markNotificationAsRead(notificationId) {
     // Update local state immediately for better UX
@@ -179,7 +182,7 @@ function markAllAsRead() {
         });
 }
 
-// Fetch initial unread count
+// Fetch unread count from API
 function fetchUnreadCount() {
     fetch('/admin/notifications/unread-count')
         .then(response => response.json())
@@ -201,15 +204,13 @@ function fetchInitialNotifications() {
         .then(response => response.json())
         .then(data => {
             if (data.status && data.data && data.data.notifications) {
-                // Updated to use data.data.notifications instead of data.data
+                // Add to notification list
                 data.data.notifications.forEach(notification => {
                     addNotification(notification);
                 });
 
                 // Update UI
                 updateNotificationUI();
-            } else {
-                console.log('No notifications found or empty response');
             }
         })
         .catch(error => {

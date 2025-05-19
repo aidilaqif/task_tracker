@@ -48,7 +48,6 @@ function updateNotificationDropdown() {
         list.appendChild(item);
     });
 }
-
 // Render notification item
 function renderNotificationItem(notification) {
     const item = document.createElement('div');
