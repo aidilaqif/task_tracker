@@ -36,6 +36,9 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize local notifications
+    final userId = int.parse(widget.userData['user']['id'].toString());
+    _notificationService.init(userId);
     _ActivityPageStates[widget] = this;
     _loadNotifications();
     

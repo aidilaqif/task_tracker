@@ -288,7 +288,7 @@
 
 .overdue-tasks-table .task-title {
     font-weight: 500;
-    max-width: 200px;
+    max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -296,7 +296,7 @@
 
 .overdue-tasks-table .days-overdue {
     font-weight: 600;
-    color: #DC3545;
+    /* color: #DC3545; */
 }
 
 .priority-badge {
@@ -309,12 +309,12 @@
 
 .priority-badge.high {
     background-color: #ffdde1;
-    color: #DC3545;
+    /* color: #DC3545; */
 }
 
 .priority-badge.medium {
     background-color: #fff3cd;
-    color: #FFC107;
+    /* color: #FFC107; */
 }
 
 .priority-badge.low {

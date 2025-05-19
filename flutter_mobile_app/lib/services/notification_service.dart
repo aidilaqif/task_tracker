@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'local_notification_services.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
+  final LocalNotificationService _localNotificationService = LocalNotificationService();
 
   // Factory constructor
   factory NotificationService() {
@@ -25,8 +27,20 @@ class NotificationService {
   // Connection status
   bool get isConnected => _socket?.connected ?? false;
 
-  // Initialize Socket.IO connection
-  void initSocket(int userId) {
+  // Initialize both socket and local notifications
+  Future<void> init(int userId) async {
+    // Initialize local notifications
+    await _localNotificationService.initialize();
+    
+    // Initialize socket connection
+    _initSocket(userId);
+  }
+
+  // Public method to initialize Socket.IO connection
+  void initSocket(int userId) => _initSocket(userId);
+
+  // Initialize Socket.IO connection (private)
+  void _initSocket(int userId) {
     // Dont initialize if userId is invalid
     if (userId <= 0) {
       debugPrint('Socket.IO: Invalid user ID, not connecting');
@@ -45,14 +59,14 @@ class NotificationService {
       _socket = IO.io(
         serverUrl,
         IO.OptionBuilder()
-          .setTransports(['websocket', 'polling']) // Support both transport types
-          .disableAutoConnect() // We'll connect manually
+          .setTransports(['websocket', 'polling'])
+          .disableAutoConnect()
           .enableForceNew()
-          .enableReconnection() // Enable reconnection
-          .setReconnectionAttempts(10) // More reconnection attempts
-          .setReconnectionDelay(1000) // Start with 1 second delay
-          .setReconnectionDelayMax(5000) // Max 5 seconds between attempts
-          .setQuery({'userId': userId.toString()}) // Send userId in query
+          .enableReconnection()
+          .setReconnectionAttempts(10)
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .setQuery({'userId': userId.toString()})
           .build()
       );
 
@@ -117,6 +131,15 @@ class NotificationService {
       debugPrint('Socket.IO: New notification received: $data');
       if (data != null) {
         _notificationStreamController.add(data);
+
+        // Show local notification
+        _localNotificationService.showNotification(
+          id: data['id'] ?? DateTime.now().millisecondsSinceEpoch,
+          title: data['title'] ?? 'New Notification',
+          message: data['message'] ?? '',
+          type: data['type'],
+          taskId: data['task_id'],
+        );
 
         // Send acknowledgement to server
         _socket?.emit('notification-received', {'notificationId': data['id']});
