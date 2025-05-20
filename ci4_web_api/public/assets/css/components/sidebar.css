@@ -1,4 +1,11 @@
-/* Improved sidebar header styling */
+/* Make logout stand out in bottom nav */
+    .sidebar.bottom-nav .sidebar-menu li.logout-item a {
+        color: #ff8585;
+    }
+    
+    .sidebar.bottom-nav .sidebar-menu li.logout-item a:hover {
+        background-color: rgba(220, 53, 69, 0.1);
+    }/* Improved sidebar header styling */
 .sidebar {
     width: 250px;
     min-height: 100vh;
@@ -199,55 +206,93 @@
     background-color: rgba(220, 53, 69, 0.2);
 }
 
-/* Responsive behavior for smaller screens */
+/* Responsive behavior for smaller screens - NEW BOTTOM NAVIGATION */
 @media (max-width: 768px) {
+    /* Hide regular sidebar */
     .sidebar {
-        width: 250px;
         transform: translateX(-100%);
         z-index: 1050;
     }
 
-    .sidebar.collapsed {
-        width: 250px;
-        transform: translateX(-100%);
-    }
-
-    .sidebar.mobile-open {
+    /* Show bottom navigation bar */
+    .sidebar.bottom-nav {
         transform: translateX(0);
-    }
-
-    .content-wrapper {
-        margin-left: 0 !important;
-    }
-
-    .sidebar-mobile-backdrop {
-        position: fixed;
-        top: 0;
+        width: 100%;
+        min-height: auto;
+        height: 60px;
+        bottom: 0;
+        top: auto;
         left: 0;
         right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1040;
+        flex-direction: row;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    }
+    
+    /* Hide sidebar header and user info in bottom nav */
+    .sidebar.bottom-nav .sidebar-header {
         display: none;
     }
-
-    .sidebar-mobile-backdrop.show {
+    
+    /* Adjust menu for horizontal layout with more compact spacing */
+    .sidebar.bottom-nav .sidebar-menu {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        margin: 0;
+        padding: 0 5px;
+    }
+    
+    .sidebar.bottom-nav .sidebar-menu li {
+        margin: 0;
+        flex: 1;
+        text-align: center;
+    }
+    
+    /* Make bottom nav fit essential items only */
+    .sidebar.bottom-nav .sidebar-menu li a {
+        flex-direction: column;
+        padding: 5px 2px;
+        height: 60px;
+        justify-content: center;
+        align-items: center;
+        border-left: none;
+        border-top: 3px solid transparent;
+    }
+    
+    .sidebar.bottom-nav .sidebar-menu li.active a {
+        border-left: none;
+        border-top: 3px solid #007bff;
+    }
+    
+    .sidebar.bottom-nav .sidebar-menu li a i {
+        margin: 0 0 5px 0;
+        font-size: 18px;
+    }
+    
+    .sidebar.bottom-nav .sidebar-menu li a span {
+        font-size: 10px;
         display: block;
     }
+    
+    /* Style logout in bottom nav */
+    .sidebar.bottom-nav .sidebar-menu li.logout-item {
+        margin-top: 0;
+        border-top: none;
+    }
 
-    /* Show the mobile menu button */
+    /* Adjust content wrapper to account for bottom nav */
+    .content-wrapper {
+        margin-left: 0 !important;
+        padding-bottom: 70px; /* Space for bottom nav */
+    }
+
+    /* Hide the sidebar backdrop for bottom nav */
+    .sidebar-mobile-backdrop {
+        display: none !important;
+    }
+    
+    /* Hide mobile menu button since we have bottom nav */
     .mobile-menu-btn {
-        display: block;
+        display: none;
     }
-}
-
-/* Mobile menu button to the header for small screens */
-.mobile-menu-btn {
-    display: none;
-    background: transparent;
-    border: none;
-    color: #333;
-    font-size: 24px;
-    cursor: pointer;
-    margin-right: 15px;
 }

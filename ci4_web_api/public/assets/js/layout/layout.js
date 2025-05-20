@@ -4,19 +4,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
     const body = document.body;
 
-    // Create backdrop for mobile
+    // Create backdrop for mobile slide-in sidebar (when needed)
     const backdrop = document.createElement('div');
     backdrop.className = 'sidebar-mobile-backdrop';
     document.body.appendChild(backdrop);
 
-    // Function to toggle sidebar
-    function toggleSidebar() {
+    // Function to handle responsive sidebar behavior
+    function handleResponsiveSidebar() {
         const isMobile = window.innerWidth < 768;
 
         if (isMobile) {
-            sidebar.classList.toggle('mobile-open');
-            backdrop.classList.toggle('show');
+            // On mobile: convert to bottom navigation
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.remove('mobile-open');
+            sidebar.classList.add('bottom-nav');
+            body.classList.remove('sidebar-collapsed');
+            backdrop.classList.remove('show');
         } else {
+            // On desktop: restore normal sidebar
+            sidebar.classList.remove('bottom-nav');
+            sidebar.classList.remove('mobile-open');
+
+            // Restore desktop collapsed state if previously set
+            if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                sidebar.classList.add('collapsed');
+                body.classList.add('sidebar-collapsed');
+            }
+        }
+    }
+
+    // Function to toggle sidebar (for desktop only)
+    function toggleSidebar() {
+        const isMobile = window.innerWidth < 768;
+
+        if (!isMobile) {
+            // Only toggle on desktop
             sidebar.classList.toggle('collapsed');
             body.classList.toggle('sidebar-collapsed');
 
@@ -32,12 +54,20 @@ document.addEventListener('DOMContentLoaded', function () {
         body.classList.add('sidebar-collapsed');
     }
 
-    // Toggle sidebar on button click
-    sidebarToggle.addEventListener('click', toggleSidebar);
+    // Initial setup based on screen size
+    handleResponsiveSidebar();
 
-    // Mobile toggle button
+    // Toggle sidebar on button click (desktop only)
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+
+    // Mobile toggle button (if we need slide-in navigation)
     if (mobileSidebarToggle) {
-        mobileSidebarToggle.addEventListener('click', toggleSidebar);
+        mobileSidebarToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('mobile-open');
+            backdrop.classList.toggle('show');
+        });
     }
 
     // Close sidebar when clicking on backdrop
@@ -46,35 +76,8 @@ document.addEventListener('DOMContentLoaded', function () {
         backdrop.classList.remove('show');
     });
 
-    // Handle clicks on sidebar links on mobile
-    const sidebarLinks = sidebar.querySelectorAll('a');
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', function () {
-            if (window.innerWidth < 768) {
-                sidebar.classList.remove('mobile-open');
-                backdrop.classList.remove('show');
-            }
-        });
-    });
-
     // Handle window resize
     window.addEventListener('resize', function () {
-        const isMobile = window.innerWidth < 768;
-
-        if (isMobile) {
-            // On mobile: remove desktop classes, potentially add mobile ones
-            sidebar.classList.remove('collapsed');
-            body.classList.remove('sidebar-collapsed');
-        } else {
-            // On desktop: remove mobile classes, potentially add desktop ones
-            sidebar.classList.remove('mobile-open');
-            backdrop.classList.remove('show');
-
-            // Restore desktop state from localStorage
-            if (localStorage.getItem('sidebarCollapsed') === 'true') {
-                sidebar.classList.add('collapsed');
-                body.classList.add('sidebar-collapsed');
-            }
-        }
+        handleResponsiveSidebar();
     });
 });
