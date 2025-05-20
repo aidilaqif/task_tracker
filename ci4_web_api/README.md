@@ -1,68 +1,204 @@
-# CodeIgniter 4 Application Starter
+# Task Tracker - Team and Task Management Application
 
-## What is CodeIgniter?
+Task Tracker is a comprehensive team and task management web application built with CodeIgniter 4. It provides a robust system for team organization, task assignment, progress tracking, and real-time notifications.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Features
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- **User Management**
+  - Role-based access control (Admin/User)
+  - User registration and authentication
+  - Profile management
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+- **Team Management**
+  - Create and manage teams
+  - Add/remove team members
+  - Team performance metrics
+  - Team completion rates visualization
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- **Task Management**
+  - Create, assign, and track tasks
+  - Priority levels (High, Medium, Low)
+  - Multiple status options (Pending, In-Progress, Completed, Request-Extension)
+  - Progress tracking with percentage completion
+  - Due date management
 
-## Installation & updates
+- **Real-time Notifications**
+  - Task assignments
+  - Status updates
+  - Priority changes
+  - Progress updates
+  - Due date modifications
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+- **Dashboard & Analytics**
+  - Task status overview
+  - Priority distribution
+  - Overdue tasks monitoring
+  - Upcoming deadlines
+  - Team performance metrics
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+- **Responsive Design**
+  - Works on desktop and mobile devices
+  - Bottom navigation on mobile for easy access
 
-## Setup
+## Technology Stack
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+- **Backend**: PHP 8.1+, CodeIgniter 4
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Database**: MySQL/MariaDB
+- **Real-time Communication**: Socket.IO, WebSockets
+- **Authentication**: Session-based authentication
 
-## Important Change with index.php
+## System Requirements
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+- PHP version 8.1 or higher
+- Required PHP extensions:
+  - intl
+  - mbstring
+  - json (enabled by default)
+  - mysqlnd (if using MySQL)
+  - libcurl (if using HTTP\CURLRequest library)
+- MySQL 5.7+ or MariaDB 10.3+
+- Web server (Apache/Nginx)
+- Node.js and npm (for the notification server)
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## Installation
 
-**Please** read the user guide for a better explanation of how CI4 works!
+### 1. Clone the Repository
 
-## Repository Management
+```bash
+git clone https://github.com/your-username/task-tracker.git
+cd ci4_web_api
+```
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+### 2. Install Dependencies
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+```bash
+composer install
+npm install  # For notification server
+```
 
-## Server Requirements
+### 3. Configure Environment
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+Copy the environment template file and modify it for your setup:
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+```bash
+cp env .env
+```
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+Edit `.env` file to configure:
+- Base URL (`app.baseURL`)
+- Database settings (`database.*`)
+- Notification server URL (`NOTIFICATION_SERVER_URL`)
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+### 4. Setup Database
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+```bash
+php spark migrate
+php spark db:seed InitialSeeder  # Create default admin user
+```
+
+### 5. Start Notification Server
+
+```bash
+cd notification-server
+npm start
+```
+
+### 6. Run the Application
+
+For development:
+```bash
+php spark serve
+```
+
+For production, configure your web server to point to the `public` folder.
+
+## Project Structure
+
+```
+ci4_web_api/
+├── app/                  # Application code
+│   ├── Config/           # Configuration files
+│   ├── Controllers/      # Controllers
+│   ├── Models/           # Data models
+│   └── Views/            # UI templates
+├── public/               # Publicly accessible files
+│   ├── assets/           # CSS, JS, images
+│   └── index.php         # Entry point
+├── notification-server/  # Real-time notification server
+└── vendor/               # Composer dependencies
+```
+
+## Key Components
+
+### Models
+
+- **UsersModel**: User account management
+- **TeamModel**: Team creation and management
+- **TasksModel**: Task tracking and assignment
+- **NotificationsModel**: User notifications
+
+### Controllers
+
+- **AuthController**: Authentication and session management
+- **UsersController**: User operations
+- **TeamController**: Team operations
+- **TasksController**: Task management
+- **NotificationsController**: Notification handling
+- **WebUIController**: Web interface views
+
+### Views
+
+- Dashboard, Team, Task, User Management, and Notification pages
+- Modal components for creating/editing items
+- Error pages and form templates
+
+## API Endpoints
+
+The application includes a RESTful API for integration with other systems:
+
+### Users
+- `GET /users` - Get all users
+- `POST /users/add` - Create a new user
+- `PUT /users/{id}` - Update a user
+- `DELETE /users/{id}` - Delete a user
+
+### Teams
+- `GET /teams` - Get all teams
+- `GET /teams/with-count` - Get teams with member counts
+- `GET /teams/{id}/members` - Get team members
+- `POST /teams` - Create a new team
+- `PUT /teams/{id}` - Update a team
+
+### Tasks
+- `GET /tasks` - Get all tasks
+- `POST /tasks/add` - Create a new task
+- `PUT /tasks/edit/{id}` - Update a task
+- `PUT /tasks/status/{id}` - Update task status
+- `PUT /tasks/progress/{id}` - Update task progress
+
+### Notifications
+- `GET /admin/notifications` - Get admin notifications
+- `POST /admin/notifications/mark-all-read` - Mark all notifications as read
+
+## Configuration
+
+### Environment Variables
+
+- `NOTIFICATION_SERVER_URL` - URL for the notification server (default: http://localhost:3000)
+- Database configuration (`database.*` variables)
+- Email configuration (for password resets, notifications)
+
+## Security Considerations
+
+- Authentication is enforced through filters
+- Form validation for all inputs
+- CSRF protection enabled
+- Session timeout handling
+- XSS protection through output escaping
+
+---
+
+## Screenshots
+
+[Add screenshots of key pages here]
