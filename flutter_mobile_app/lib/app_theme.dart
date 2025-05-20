@@ -4,7 +4,7 @@ class AppTheme {
   AppTheme._(); // Private constructor to prevent instantiation
 
   // Primary Colors (adapted from the web version with better contrast for mobile)
-  static const Color primaryColor = Color(0xFF6200EE); // Deep purple
+  static const Color primaryColor = Color(0xFF121212); // Deep purple
   static const Color primaryVariantColor = Color(0xFF3700B3); // Darker purple
   static const Color secondaryColor = Color(0xFF03DAC6); // Teal accent
   static const Color secondaryVariantColor = Color(0xFF018786); // Darker teal

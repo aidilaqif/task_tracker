@@ -287,9 +287,7 @@ function updateOverdueTasks(dashboardData) {
         thead.innerHTML = `
             <tr>
                 <th>Task</th>
-                <th>Assigned To</th>
                 <th>Days Overdue</th>
-                <th>Priority</th>
                 <th></th>
             </tr>
         `;
@@ -307,9 +305,7 @@ function updateOverdueTasks(dashboardData) {
 
             tr.innerHTML = `
                 <td class="task-title">${task.title}</td>
-                <td>${task.assigned_to || 'Unassigned'}</td>
                 <td class="days-overdue">${task.days_overdue} day${task.days_overdue !== 1 ? 's' : ''}</td>
-                <td><span class="priority-badge ${task.priority}">${task.priority}</span></td>
                 <td>
                     <button class="view-task-btn" data-id="${task.id}">View</button>
                 </td>
@@ -535,7 +531,7 @@ function displayTeamCompletionRates(teamMetrics) {
         teamNameDiv.className = 'team-name';
         teamNameDiv.innerHTML = `
             <span class="team-name-text">${team.name}</span>
-            <span class="completion-rate">${completionRate}</span>
+            <span class="completion-rate">${completionRate}%</span>
         `;
 
         // Create progress bar

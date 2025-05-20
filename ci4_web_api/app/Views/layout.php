@@ -42,12 +42,37 @@
 <body>
     <!-- Include Sidebar -->
     <?= $this->include('sidebar') ?>
-
     <!-- Main Content Wrapper -->
     <div class="content-wrapper">
         <!-- Page Header -->
         <header class="content-header">
+            <button id="mobileSidebarToggle" class="mobile-menu-btn">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="container">
+            <!-- Notification Bell -->
+            <div class="notification-bell-container" id="notificationBell">
+                <i class="fas fa-bell notification-bell"></i>
+                <span class="notification-badge" id="notificationBadge">0</span>
+
+                <!-- Notification Dropdown -->
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <a href="#" id="markAllAsRead">Mark all as read</a>
+                    </div>
+                    <div class="notification-list" id="notificationList">
+                        <!-- Notification items will be dynamically added here -->
+                        <div class="empty-notifications">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>No new notifications</p>
+                        </div>
+                    </div>
+                    <div class="notification-footer">
+                        <a href="/notifications">View all notifications</a>
+                    </div>
+                </div>
+            </div>
                 <h1><?= $header ?? $title ?? 'Task Tracker' ?></h1>
                 <?php if(session()->has('error')): ?>
                     <div class="alert alert-danger">
@@ -69,5 +94,32 @@
             </div>
         </main>
     </div>
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+
+    <!-- Notification Scripts -->
+    <script>
+        // Set user ID for notification system
+        window.userId = <?= session()->get('user_id') ?? 0 ?>;
+        window.notificationServerUrl = '<?= getenv('NOTIFICATION_SERVER_URL') ?? 'http://localhost:3000' ?>';
+    </script>
+    <script src="<?= base_url('assets/js/notifications/notification-bridge.js') ?>"></script>
+    <!-- Manually trigger notification check on page load -->
+    <script>
+        // Force a notification check after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Allow time for NotificationBridge to initialize
+            setTimeout(function() {
+            if (typeof NotificationBridge !== 'undefined' && NotificationBridge.fetchNotifications) {
+                console.log('Forcing initial notification check');
+                NotificationBridge.fetchNotifications();
+            }
+            }, 2000);
+        });
+    </script>
+
+    <script src="<?= base_url('assets/js/layout/layout.js') ?>"></script>
+
 </body>
 </html>
+

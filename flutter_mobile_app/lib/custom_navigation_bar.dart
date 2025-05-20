@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
-import 'package:flutter_mobile_app/pages/login_page.dart';
-import 'package:flutter_mobile_app/pages/tasks_page.dart';
-import 'package:flutter_mobile_app/pages/activity_page.dart';
-import 'package:flutter_mobile_app/pages/team_page.dart';
-import 'package:flutter_mobile_app/pages/profile_page.dart';
+import 'package:flutter_mobile_app/pages/login/login_page.dart';
+import 'package:flutter_mobile_app/pages/tasks/tasks_page.dart';
+import 'package:flutter_mobile_app/pages/activity/activity_page.dart';
+import 'package:flutter_mobile_app/pages/team/team_page.dart';
+import 'package:flutter_mobile_app/pages/profile/profile_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
-import 'package:flutter_mobile_app/services/notification_service.dart';
+import 'package:flutter_mobile_app/services/socket_notification_service.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -140,7 +140,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
     if (confirm) {
       try {
         // Close socket connection
-        NotificationService().closeSocket();
+        SocketNotificationService().closeSocket();
 
         // Call logout API
         await _apiService.logoutUser();
@@ -157,7 +157,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
         if (!mounted) return;
 
         // Close socket connection
-        NotificationService().closeSocket();
+        SocketNotificationService().closeSocket();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -192,8 +192,8 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.primaryColor,
+        selectedItemColor: AppTheme.textOnPrimaryColor,
         unselectedItemColor: AppTheme.textSecondaryColor,
         selectedFontSize: 12,
         unselectedFontSize: 12,

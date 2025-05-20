@@ -17,6 +17,7 @@ $routes->get('/', 'WebUIController::dashboard', ['filter' => 'auth']);
 $routes->get('/dashboard', 'WebUIController::dashboard', ['filter' => 'auth']);
 $routes->get('/team', 'WebUIController::team', ['filter' => 'auth']);
 $routes->get('/task', 'WebUIController::task', ['filter' => 'auth']);
+$routes->get('/notifications', 'WebUIController::notifications', ['filter' => 'auth']);
 $routes->get('/team_detail', 'WebUIController::teamDetail', ['filter' => 'auth']);
 $routes->get('/task_detail', 'WebUIController::taskDetail', ['filter' => 'auth']);
 $routes->get('/user', 'WebUIController::user', ['filter' => 'auth']);
@@ -71,3 +72,9 @@ $routes->post('notifications/task', 'NotificationsController::sendTaskNotificati
 $routes->get('notifications/user/(:num)', 'NotificationsController::getUserNotifications/$1');
 $routes->put('notifications/read/(:num)', 'NotificationsController::markAsRead/$1');
 $routes->post('notifications/task-assignment', 'TasksController::sendTaskAssignmentNotification');
+
+// Admin Notification Routes
+$routes->get('admin/notifications', 'NotificationsController::getAdminNotifications', ['filter' => 'auth']);
+$routes->post('admin/notifications/mark-read/(:num)', 'NotificationsController::markAsRead/$1', ['filter' => 'auth']);
+$routes->post('admin/notifications/mark-all-read', 'NotificationsController::markAllAsRead', ['filter' => 'auth']);
+$routes->get('admin/notifications/unread-count', 'NotificationsController::getUnreadCount', ['filter' => 'auth']);

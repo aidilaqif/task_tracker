@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobile_app/custom_navigation_bar.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
+import 'package:flutter_mobile_app/custom_navigation_bar.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
-import 'package:flutter_mobile_app/services/notification_service.dart';
+import 'package:flutter_mobile_app/services/socket_notification_service.dart';
+import 'package:flutter_mobile_app/pages/login/app_logo.dart';
+import 'package:flutter_mobile_app/pages/login/login_form.dart';
+import 'package:flutter_mobile_app/pages/login/connection_status.dart';
+import 'package:flutter_mobile_app/pages/login/login_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -72,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
         // Check if user role is 'user'
         if (response['data']['role'] == 'user') {
           // Initialize notification service
-          int ? userId;
+          int? userId;
           try {
             final userIdValue = response['data']['user']['id'];
             if (userIdValue != null) {
@@ -83,9 +87,11 @@ class _LoginPageState extends State<LoginPage> {
 
             if (userId > 0) {
               // Only initialize if we have a valid user ID
-              NotificationService().initSocket(userId);
+              SocketNotificationService().initSocket(userId);
             } else {
-              print('Warning: Invalid user ID for socket initialization: $userIdValue');
+              print(
+                'Warning: Invalid user ID for socket initialization: $userIdValue',
+              );
             }
           } catch (e) {
             print('Error parsing user ID: ${e.toString()}');
@@ -94,7 +100,8 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CustomNavigationBar(userData: response['data']),
+              builder:
+                  (context) => CustomNavigationBar(userData: response['data']),
             ),
           );
         } else {
@@ -132,84 +139,23 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   // App Logo
-                  Icon(
-                    Icons.assignment_outlined,
-                    size: 70,
-                    color: AppTheme.primaryColor,
-                  ),
-                  SizedBox(height: AppTheme.spacingMd),
-                  Text(
-                    'Task Tracker',
-                    style: AppTheme.headlineStyle,
-                  ),
-                  Text(
-                    'Team Member Login',
-                    style: AppTheme.subtitleStyle.copyWith(
-                      color: AppTheme.textSecondaryColor,
-                    ),
-                  ),
+                  AppLogo(),
                   SizedBox(height: AppTheme.spacingXl),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email, color: AppTheme.primaryColor),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
-                      ),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
+
+                  // Login Form
+                  LoginForm(
+                    emailController: _emailController,
+                    passwordController: _passwordController,
                   ),
                   SizedBox(height: AppTheme.spacingMd),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock, color: AppTheme.primaryColor),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
-                      ),
-                    ),
-                    obscureText: true,
-                  ),
-                  SizedBox(height: AppTheme.spacingMd),
+
+                  // Connection Status
                   if (_connectionStatus.isNotEmpty)
-                    Container(
-                      padding: EdgeInsets.all(AppTheme.spacingSm),
-                      decoration: BoxDecoration(
-                        color: _connectionStatus.contains('successful') || _connectionStatus.contains('Connected')
-                              ? AppTheme.lowPriorityBgColor : AppTheme.highPriorityBgColor,
-                        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
-                      ),
-                      child: Text(
-                        _connectionStatus,
-                        style: TextStyle(
-                          color: _connectionStatus.contains('successful') || _connectionStatus.contains('Connected')
-                                ? AppTheme.lowPriorityColor : AppTheme.highPriorityColor,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                    ConnectionStatus(connectionStatus: _connectionStatus),
                   SizedBox(height: AppTheme.spacingLg),
-                  _isLoading
-                    ? CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-                      )
-                    : ElevatedButton(
-                        onPressed: _login,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(double.infinity, 50),
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: AppTheme.textOnPrimaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
-                          ),
-                        ),
-                        child: Text(
-                          'Login',
-                          style: AppTheme.buttonTextStyle,
-                        ),
-                      )
+
+                  // Login Button
+                  LoginButton(isLoading: _isLoading, onPressed: _login),
                 ],
               ),
             ),
