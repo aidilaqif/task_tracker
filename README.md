@@ -1,67 +1,244 @@
-# TaskTracker
+# TaskTracker - Comprehensive Task Management System
 
-TaskTracker is a comprehensive task management system designed to streamline workflow management between managers and team members. The system consists of a web application for managers and a mobile application for team members (currently in development).
+TaskTracker is a complete task management solution that bridges the gap between management and team execution through specialized interfaces for different user roles. The system consists of three main components: a web application for managers, a mobile application for team members, and a real-time notification server.
 
-## Overview
 
-TaskTracker aims to bridge the gap between management and team execution by providing specialized interfaces for different user roles. The system centralizes task assignment, monitoring, and reporting in a single cohesive platform.
+## 🌟 System Overview
 
-## Components
+TaskTracker centralizes task assignment, monitoring, and reporting in a single cohesive platform:
 
-### Web Application (Manager Interface) - 🚧 In Development
+| Component | Target Users | Technology | Status |
+|-----------|--------------|------------|--------|
+| Web Application | Managers/Admins | CodeIgniter 4, PHP | Completed |
+| Mobile Application | Team Members | Flutter, Dart | Completed |
+| Notification Server | System | Node.js, Socket.IO | Completed |
 
-The web application provides managers with tools to:
+## 🏗️ Architecture
 
-- **Task Assignment**: Create and assign tasks to team members with details, priorities, and deadlines
-- **Team Management**: Monitor workload distribution and team performance
-- **Task Administration**: Update, track, and manage task statuses
-- **Priority Setting**: Define importance levels for tasks to help team members prioritize their work
-- **Performance Monitoring**: View completion rates and productivity metrics
+The system follows a client-server architecture with these components:
 
-### Mobile Application (Team Member Interface) - 🚧 In Development
+```
+TaskTracker/
+├── ci4_web_api/           # Web application backend + admin frontend
+├── flutter_mobile_app/    # Mobile application for team members
+└── notification_server/   # Real-time notification system
+```
 
-The mobile application will provide team members with:
+## 🖥️ Web Application (Manager Interface)
 
-- Push notifications for new task assignments
-- Task viewing capabilities
-- Progress tracking with visual indicators
-- Status update functionality (in-progress, completed, request extension)
+Built with CodeIgniter 4, the web application provides managers with comprehensive tools for team and task management.
 
-### Notification Server - 🚧 In Development
+### Key Features
 
-A real-time notification system to alert team members of new tasks and updates.
+- **User Management**
+  - Role-based access control (Admin/User)
+  - User authentication with secure sessions
+  - User profiles and permissions
 
-## Technical Implementation
+- **Team Management**
+  - Create and organize teams
+  - Add/remove team members
+  - View team performance metrics
+  - Track team completion rates
 
-The system is built using:
+- **Task Administration**
+  - Create and assign tasks with details
+  - Define priority levels (High, Medium, Low)
+  - Track task status (Pending, In-Progress, Completed, Request-Extension)
+  - Monitor progress percentage
+  - Set and manage deadlines
 
-- **Backend**: CodeIgniter 4 PHP framework
-- **Web Frontend**: HTML, CSS, JavaScript
-- **Mobile App**: Flutter
-- **Database**: MySQL
-- **Real-time Communication**: Socket.IO
+- **Dashboard & Analytics**
+  - Task status overview
+  - Priority distribution visualization
+  - Overdue tasks monitoring
+  - Upcoming deadlines tracking
+  - Team performance comparison
 
-## Project Status
+## 📱 Mobile Application (Team Member Interface)
 
-- **Web Application**: Under development
-- **Mobile Application**: Under development
-- **Notification Server**: Under development
+Built with Flutter, the mobile application provides team members with a streamlined interface for managing their assigned tasks.
 
-## Setup Instructions
+### Key Features
 
-1. Clone the repository
-2. Configure your database settings in `ci4_web_api/app/Config/Database.php`
-3. Run database migrations
-4. Launch the web application
+- **Task Management**
+  - View assigned tasks with details
+  - Filter tasks by status
+  - Update task status and progress
+  - Request deadline extensions
 
-## Future Development
+- **Team Collaboration**
+  - View team information
+  - See team member profiles
+  - Identify your role within the team
 
-- Complete web application implementation
-- Complete mobile application implementation
-- Implement notification server for real-time updates
-- Add reporting and analytics features
-- Integrate calendar views for deadline management
+- **Real-time Notifications**
+  - Receive instant alerts for new assignments
+  - Get updates on task changes
+  - Group notifications by type
+  - Navigate directly to relevant tasks
 
----
+- **Profile & Performance**
+  - View personal task statistics
+  - Track completion rate
+  - Monitor workload distribution
 
-© 2024 TaskTracker. All rights reserved.
+## 🔔 Notification Server
+
+Built with Node.js and Socket.IO, the notification server provides real-time communication between the web and mobile applications.
+
+### Key Features
+
+- **Real-time Delivery**
+  - Instant push notifications
+  - WebSocket communication
+  - Fallback to database for offline users
+
+- **Notification Types**
+  - Task assignments
+  - Status updates
+  - Priority changes
+  - Progress updates
+  - Due date modifications
+
+- **Administration**
+  - Health monitoring
+  - Connected user tracking
+  - Notification delivery status
+
+## 🛠️ Technology Stack
+
+- **Backend**
+  - Web API: PHP 8.1+, CodeIgniter 4
+  - Notification Server: Node.js, Express, Socket.IO
+  - Database: MySQL
+
+- **Frontend**
+  - Web: HTML5, CSS3, JavaScript
+  - Mobile: Flutter, Dart
+
+- **Communication**
+  - RESTful APIs
+  - WebSockets
+  - Socket.IO
+
+## 📋 System Requirements
+
+### Web Application
+- PHP 8.1 or higher
+- MySQL 5.7+ or MariaDB 10.3+
+- Web server (Apache/Nginx)
+- Required PHP extensions: intl, mbstring, json, mysqlnd, libcurl
+
+### Mobile Application
+- Flutter SDK (3.7.2 or higher)
+- Dart SDK (3.0.0 or higher)
+- Android Studio / VS Code with Flutter plugins
+- iOS development tools (for iOS deployment)
+
+### Notification Server
+- Node.js (v18 or higher)
+- npm or yarn
+- MySQL access
+
+## 🚀 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/tasktracker.git
+cd tasktracker
+```
+
+### 2. Set Up Web Application
+
+```bash
+cd ci4_web_api
+composer install
+cp env .env
+# Configure .env with your database settings
+php spark migrate
+php spark db:seed InitialSeeder
+```
+
+### 3. Set Up Notification Server
+
+```bash
+cd ../notification_server
+npm install
+cp .env.example .env
+# Configure .env with your settings
+```
+
+### 4. Set Up Mobile Application
+
+```bash
+cd ../flutter_mobile_app
+flutter pub get
+# Create .env file with your API_BASE_URL and NOTIFICATION_SERVER_URL
+```
+
+### 5. Start the Services
+
+```bash
+# Start web server (from ci4_web_api directory)
+php spark serve
+
+# Start notification server (from notification_server directory)
+npm start
+
+# Run mobile app (from flutter_mobile_app directory)
+flutter run
+```
+
+## 📊 Database Schema
+
+The system uses a consistent database schema across components:
+
+```
+┌───────────┐       ┌───────────┐       ┌───────────┐
+│   users   │       │   teams   │       │   tasks   │
+├───────────┤       ├───────────┤       ├───────────┤
+│ id        │       │ id        │       │ id        │
+│ name      │       │ name      │       │ user_id   │
+│ email     │◄─────►│ description│◄─────►│ title     │
+│ password  │       └───────────┘       │ description│
+│ role      │                           │ due_date   │
+│ team_id   │       ┌───────────┐       │ status     │
+└───────────┘       │notifications│     │ priority   │
+                    ├───────────┤       │ progress   │
+                    │ id        │       └───────────┘
+                    │ user_id   │
+                    │ task_id   │
+                    │ title     │
+                    │ message   │
+                    │ is_read   │
+                    │ type      │
+                    └───────────┘
+```
+
+## 🔒 Security Features
+
+- Authentication and authorization for all components
+- CSRF protection in web application
+- Secure WebSocket connections
+- Data validation across all inputs
+- XSS protection through output escaping
+
+## 🔜 Future Development
+
+- Enhanced reporting and analytics
+- Calendar integrations
+- Time tracking features
+- Document attachments
+- Mobile offline mode
+- Multi-language support
+
+
+## Component Documentation
+
+For detailed documentation on each component, please see:
+
+- [Web Application Documentation](ci4_web_api/README.md)
+- [Mobile Application Documentation](flutter_mobile_app/README.md)
+- [Notification Server Documentation](notification_server/README.md)
