@@ -46,7 +46,9 @@
     <div class="content-wrapper">
         <!-- Page Header -->
         <header class="content-header">
-
+            <button id="mobileSidebarToggle" class="mobile-menu-btn">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="container">
             <!-- Notification Bell -->
             <div class="notification-bell-container" id="notificationBell">
@@ -115,6 +117,8 @@
             }, 2000);
         });
     </script>
+
+    <script src="<?= base_url('assets/js/layout/layout.js') ?>"></script>
 
 </body>
 </html>
