@@ -192,8 +192,8 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.primaryColor,
+        selectedItemColor: AppTheme.textOnPrimaryColor,
         unselectedItemColor: AppTheme.textSecondaryColor,
         selectedFontSize: 12,
         unselectedFontSize: 12,
