@@ -2,7 +2,6 @@
 
 TaskTracker is a complete task management solution that bridges the gap between management and team execution through specialized interfaces for different user roles. The system consists of three main components: a web application for managers, a mobile application for team members, and a real-time notification server.
 
-![TaskTracker System](https://placeholder-image.com/tasktracker-overview.png)
 
 ## 🌟 System Overview
 
