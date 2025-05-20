@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/pages/login_page.dart';
-import 'package:flutter_mobile_app/pages/tasks_page.dart';
+import 'package:flutter_mobile_app/pages/tasks/tasks_page.dart';
 import 'package:flutter_mobile_app/pages/activity_page.dart';
-import 'package:flutter_mobile_app/pages/team_page.dart';
-import 'package:flutter_mobile_app/pages/profile_page.dart';
+import 'package:flutter_mobile_app/pages/team/team_page.dart';
+import 'package:flutter_mobile_app/pages/profile/profile_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
 import 'package:flutter_mobile_app/services/notification_service.dart';
 

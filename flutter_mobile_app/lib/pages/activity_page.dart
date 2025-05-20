@@ -29,9 +29,9 @@ class _ActivityPageState extends State<ActivityPage> {
   String _errorMessage = '';
   bool _isGrouped = true;
   static _ActivityPageState? of(ActivityPage widget) {
-    return _ActivityPageStates[widget];
+    return _activityPageStates[widget];
   }
-  static final Map<ActivityPage, _ActivityPageState> _ActivityPageStates = {};
+  static final Map<ActivityPage, _ActivityPageState> _activityPageStates = {};
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _ActivityPageState extends State<ActivityPage> {
     // Initialize local notifications
     final userId = int.parse(widget.userData['user']['id'].toString());
     _notificationService.init(userId);
-    _ActivityPageStates[widget] = this;
+    _activityPageStates[widget] = this;
     _loadNotifications();
     
     // Listen for new notifications
@@ -424,9 +424,9 @@ class _ActivityPageState extends State<ActivityPage> {
         final isProcessing = notification['processing'] == true;
         final dateTime = DateTime.parse(notification['created_at']);
         final formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
-        final bool isTaskAssignment =
-          notification['title'] == 'Task Assigned' ||
-          notification['title'].toLowerCase().contains('assigned');
+        // final bool isTaskAssignment =
+        //   notification['title'] == 'Task Assigned' ||
+        //   notification['title'].toLowerCase().contains('assigned');
 
         return Card(
           margin: EdgeInsets.only(bottom: AppTheme.spacingMd),
@@ -594,7 +594,7 @@ class _ActivityPageState extends State<ActivityPage> {
               });
             },
             leading: CircleAvatar(
-              backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
               child: Icon(
                 group.icon,
                 color: AppTheme.primaryColor,
@@ -779,7 +779,7 @@ class _ActivityPageState extends State<ActivityPage> {
 
   @override
   void dispose() {
-    _ActivityPageStates.remove(widget);
+    _activityPageStates.remove(widget);
     super.dispose();
   }
 
