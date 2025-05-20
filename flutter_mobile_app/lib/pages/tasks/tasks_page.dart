@@ -4,7 +4,7 @@ import 'package:flutter_mobile_app/models/task_model.dart';
 import 'package:flutter_mobile_app/pages/tasks/error_view.dart';
 import 'package:flutter_mobile_app/pages/tasks/filter_bottom_sheet.dart';
 import 'package:flutter_mobile_app/pages/tasks/task_list.dart';
-import 'package:flutter_mobile_app/pages/tasks_detail_page.dart';
+import 'package:flutter_mobile_app/pages/task_detail/tasks_detail_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
 
 class TasksPage extends StatefulWidget {

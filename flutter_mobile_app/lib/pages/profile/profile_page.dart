@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
-import 'package:flutter_mobile_app/pages/login_page.dart';
+import 'package:flutter_mobile_app/pages/login/login_page.dart';
 import 'package:flutter_mobile_app/pages/profile/app_info.dart';
 import 'package:flutter_mobile_app/pages/profile/completion_progress.dart';
 import 'package:flutter_mobile_app/pages/profile/info_item.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:flutter_mobile_app/pages/home_page.dart';
-import 'package:flutter_mobile_app/pages/login_page.dart';
+import 'package:flutter_mobile_app/pages/login/login_page.dart';
 Future <void> main() async{
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
