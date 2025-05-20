@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/custom_navigation_bar.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
-import 'package:flutter_mobile_app/services/notification_service.dart';
+import 'package:flutter_mobile_app/services/socket_notification_service.dart';
 import 'package:flutter_mobile_app/pages/login/app_logo.dart';
 import 'package:flutter_mobile_app/pages/login/login_form.dart';
 import 'package:flutter_mobile_app/pages/login/connection_status.dart';
@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
 
             if (userId > 0) {
               // Only initialize if we have a valid user ID
-              NotificationService().initSocket(userId);
+              SocketNotificationService().initSocket(userId);
             } else {
               print(
                 'Warning: Invalid user ID for socket initialization: $userIdValue',

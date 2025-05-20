@@ -1,238 +1,89 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'api_routes.dart';
+import 'api_services/connection_service.dart';
+import 'api_services/auth_service.dart';
+import 'api_services/task_service.dart';
+import 'api_services/team_service.dart';
+import 'api_services/user_service.dart';
+import 'api_services/notification_service.dart';
 
 class ApiService {
+  // Initialize individual services
+  final ConnectionService _connectionService = ConnectionService();
+  final AuthService _authService = AuthService();
+  final TaskService _taskService = TaskService();
+  final TeamService _teamService = TeamService();
+  final UserService _userService = UserService();
+  final NotificationApiService _notificationService = NotificationApiService();
+
   // Connection check
   Future<dynamic> checkConnection() async {
-    try {
-      await http.get(
-        Uri.parse(ApiRoutes.baseUrl), // Just check if base URL is reachable
-        headers: {'Content-Type': 'application/json'},
-      );
-      return('successful');
-    } catch (e) {
-      throw Exception('Failed to connect to server: $e');
-    }
+    return await _connectionService.checkConnection();
   }
 
-  // 1. Authentication
-  // Login user
+  // Auth methods
   Future<dynamic> loginUser(Map<String, dynamic> data) async {
-    try {
-      final response = await http.post(
-        Uri.parse(ApiRoutes.login),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch(e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _authService.loginUser(data);
   }
 
-  // Logout user
   Future<dynamic> logoutUser() async {
-    try {
-      final response = await http.post(
-        Uri.parse(ApiRoutes.logout),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _authService.logoutUser();
   }
 
-  // 2. Task Management
-  // Get Tasks for a user (with optional status filter)
-  Future<dynamic> getUserTasks(int userId, {String? status, bool includeReassigned = false}) async {
-    try {
-      String url = status != null
-        ? ApiRoutes.getUserTasksByStatus(userId, status)
-        : ApiRoutes.getUserTasks(userId);
-
-      if (includeReassigned) {
-        url += url.contains('?') ? '&include_reassigned=1' : '?include_reassigned=1';
-      }
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode != 200) {
-        return {
-          'status': false,
-          'msg': 'Server error: ${response.statusCode}',
-          'data': [],
-        };
-      }
-
-      final responseData = jsonDecode(response.body);
-
-      if (responseData['status'] == true && responseData['data'] == null) {
-        responseData['data'] = [];
-      }
-
-      return responseData;
-    } catch (e) {
-      return {
-        'status': false,
-        'msg': 'Network error: ${e.toString()}',
-        'data': [],
-      };
-    }
+  // Task methods
+  Future<dynamic> getUserTasks(
+    int userId, {
+    String? status,
+    bool includeReassigned = false,
+  }) async {
+    return await _taskService.getUserTasks(
+      userId,
+      status: status,
+      includeReassigned: includeReassigned,
+    );
   }
 
-  // View single task
   Future<dynamic> viewTask(int taskId, {int? userId}) async {
-    try {
-      String url = ApiRoutes.viewTask(taskId);
-
-      if (userId != null) {
-        url += '?user_id=$userId';
-      }
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'}
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _taskService.viewTask(taskId, userId: userId);
   }
 
-  // Update Task Status (for requesting extension)
-  Future<dynamic> updateTaskStatus(int taskId, String status, [int? userId]) async {
-    try {
-      String url = ApiRoutes.updateTaskStatus(taskId);
-
-      if (userId != null) {
-        url += '?user_id=$userId';
-      }
-
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'status': status}),
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+  Future<dynamic> updateTaskStatus(
+    int taskId,
+    String status, [
+    int? userId,
+  ]) async {
+    return await _taskService.updateTaskStatus(taskId, status, userId);
   }
 
-  // Update Task Progress
-  Future<dynamic> updateTaskProgress(int taskId, int progress, [int? userId]) async {
-    try {
-      String url = ApiRoutes.updateTaskProgress(taskId);
-
-      if (userId != null) {
-        url += '?user_id=$userId';
-      }
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'progress': progress}),
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+  Future<dynamic> updateTaskProgress(
+    int taskId,
+    int progress, [
+    int? userId,
+  ]) async {
+    return await _taskService.updateTaskProgress(taskId, progress, userId);
   }
 
-  // 3. Team Information
-  // Get Basic Team Info
+  // Team methods
   Future<dynamic> getTeamInfo(int teamId) async {
-    try {
-      final response = await http.get(
-        Uri.parse(ApiRoutes.getTeamBasicInfo(teamId)),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _teamService.getTeamInfo(teamId);
   }
 
-  // Get Team Members
   Future<dynamic> getTeamMembers(int teamId) async {
-    try {
-      final response = await http.get(
-        Uri.parse(ApiRoutes.getTeamMembers(teamId)),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _teamService.getTeamMembers(teamId);
   }
 
-  // 4. User Profile
-  // Get User Profile
+  // User methods
   Future<dynamic> getUserProfile(int userId) async {
-    try {
-      final response = await http.get(
-        Uri.parse(ApiRoutes.getUserProfile(userId)),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _userService.getUserProfile(userId);
   }
 
-  // 5. Notifications
-  // Get User Notifications
+  // Notification methods
   Future<dynamic> getUserNotifications(int userId, {bool? isRead}) async {
-    try {
-      String url = ApiRoutes.getNotifications(userId);
-      if (isRead != null) {
-        url += '?is_read=${isRead ? 1 : 0}';
-      }
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _notificationService.getUserNotifications(
+      userId,
+      isRead: isRead,
+    );
   }
 
-  // Mark Notification as Read
   Future<dynamic> markNotificationAsRead(int notificationId) async {
-    try {
-      final response = await http.put(
-        Uri.parse(ApiRoutes.markNotificationAsRead(notificationId)),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      final responseData = jsonDecode(response.body);
-      return responseData;
-    } catch (e) {
-      return {'status': false, 'msg': 'Network error: ${e.toString()}'};
-    }
+    return await _notificationService.markNotificationAsRead(notificationId);
   }
 }

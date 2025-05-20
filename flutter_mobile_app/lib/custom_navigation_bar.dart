@@ -6,7 +6,7 @@ import 'package:flutter_mobile_app/pages/activity/activity_page.dart';
 import 'package:flutter_mobile_app/pages/team/team_page.dart';
 import 'package:flutter_mobile_app/pages/profile/profile_page.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
-import 'package:flutter_mobile_app/services/notification_service.dart';
+import 'package:flutter_mobile_app/services/socket_notification_service.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -140,7 +140,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
     if (confirm) {
       try {
         // Close socket connection
-        NotificationService().closeSocket();
+        SocketNotificationService().closeSocket();
 
         // Call logout API
         await _apiService.logoutUser();
@@ -157,7 +157,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> {
         if (!mounted) return;
 
         // Close socket connection
-        NotificationService().closeSocket();
+        SocketNotificationService().closeSocket();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -3,7 +3,7 @@ import 'package:flutter_mobile_app/app_theme.dart';
 import 'package:flutter_mobile_app/models/task_model.dart';
 import 'package:flutter_mobile_app/models/notification_group_model.dart';
 import 'package:flutter_mobile_app/pages/task_detail/tasks_detail_page.dart';
-import 'package:flutter_mobile_app/services/notification_service.dart';
+import 'package:flutter_mobile_app/services/socket_notification_service.dart';
 import 'package:flutter_mobile_app/services/api_services.dart';
 import 'package:flutter_mobile_app/pages/activity/empty_notifications_view.dart';
 import 'package:flutter_mobile_app/pages/activity/notifications_error_view.dart';
@@ -25,7 +25,7 @@ class ActivityPage extends StatefulWidget {
 
 class _ActivityPageState extends State<ActivityPage> {
   final ApiService _apiService = ApiService();
-  final NotificationService _notificationService = NotificationService();
+  final SocketNotificationService _notificationService = SocketNotificationService();
   final List<Map<String, dynamic>> _notifications = [];
   final List<NotificationGroup> _notificationGroups = [];
   final Map<String, bool> _processingNotifications = {};

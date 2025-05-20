@@ -2,18 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'local_notification_services.dart';
+import 'local_notification_service.dart';
 
-class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
+class SocketNotificationService {
+  static final SocketNotificationService _instance = SocketNotificationService._internal();
   final LocalNotificationService _localNotificationService = LocalNotificationService();
 
   // Factory constructor
-  factory NotificationService() {
+  factory SocketNotificationService() {
     return _instance;
   }
 
-  NotificationService._internal();
+  SocketNotificationService._internal();
 
   // Socket instance
   IO.Socket? _socket;
