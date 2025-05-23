@@ -1,204 +1,384 @@
-# Task Tracker - Team and Task Management Application
+# TaskTracker - Comprehensive Task Management System
 
-Task Tracker is a comprehensive team and task management web application built with CodeIgniter 4. It provides a robust system for team organization, task assignment, progress tracking, and real-time notifications.
+TaskTracker is a complete task management solution that bridges the gap between management and team execution through specialized interfaces for different user roles. The system consists of three main components: a web application for managers, a mobile application for team members, and a real-time notification server.
 
-## Features
+
+## 🌟 System Overview
+
+TaskTracker centralizes task assignment, monitoring, and reporting in a single cohesive platform:
+
+| Component | Target Users | Technology | Status |
+|-----------|--------------|------------|--------|
+| Web Application | Managers/Admins | CodeIgniter 4, PHP | Completed |
+| Mobile Application | Team Members | Flutter, Dart | Completed |
+| Notification Server | System | Node.js, Socket.IO | Completed |
+
+## 🏗️ Architecture
+
+The system follows a client-server architecture with these components:
+
+```
+TaskTracker/
+├── ci4_web_api/           # Web application backend + admin frontend
+├── flutter_mobile_app/    # Mobile application for team members
+└── notification_server/   # Real-time notification system
+```
+
+## 🖥️ Web Application (Manager Interface)
+
+Built with CodeIgniter 4, the web application provides managers with comprehensive tools for team and task management.
+
+### Key Features
 
 - **User Management**
   - Role-based access control (Admin/User)
-  - User registration and authentication
-  - Profile management
+  - User authentication with secure sessions
+  - User profiles and permissions
 
 - **Team Management**
-  - Create and manage teams
+  - Create and organize teams
   - Add/remove team members
-  - Team performance metrics
-  - Team completion rates visualization
+  - View team performance metrics
+  - Track team completion rates
+
+- **Task Administration**
+  - Create and assign tasks with details
+  - Define priority levels (High, Medium, Low)
+  - Track task status (Pending, In-Progress, Completed, Request-Extension)
+  - Monitor progress percentage
+  - Set and manage deadlines
+
+- **Dashboard & Analytics**
+  - Task status overview
+  - Priority distribution visualization
+  - Overdue tasks monitoring
+  - Upcoming deadlines tracking
+  - Team performance comparison
+
+## 📱 Mobile Application (Team Member Interface)
+
+Built with Flutter, the mobile application provides team members with a streamlined interface for managing their assigned tasks.
+
+### Key Features
 
 - **Task Management**
-  - Create, assign, and track tasks
-  - Priority levels (High, Medium, Low)
-  - Multiple status options (Pending, In-Progress, Completed, Request-Extension)
-  - Progress tracking with percentage completion
-  - Due date management
+  - View assigned tasks with details
+  - Filter tasks by status
+  - Update task status and progress
+  - Request deadline extensions
+
+- **Team Collaboration**
+  - View team information
+  - See team member profiles
+  - Identify your role within the team
 
 - **Real-time Notifications**
+  - Receive instant alerts for new assignments
+  - Get updates on task changes
+  - Group notifications by type
+  - Navigate directly to relevant tasks
+
+- **Profile & Performance**
+  - View personal task statistics
+  - Track completion rate
+  - Monitor workload distribution
+
+## 🔔 Notification Server
+
+Built with Node.js and Socket.IO, the notification server provides real-time communication between the web and mobile applications.
+
+### Key Features
+
+- **Real-time Delivery**
+  - Instant push notifications
+  - WebSocket communication
+  - Fallback to database for offline users
+
+- **Notification Types**
   - Task assignments
   - Status updates
   - Priority changes
   - Progress updates
   - Due date modifications
 
-- **Dashboard & Analytics**
-  - Task status overview
-  - Priority distribution
-  - Overdue tasks monitoring
-  - Upcoming deadlines
-  - Team performance metrics
+- **Administration**
+  - Health monitoring
+  - Connected user tracking
+  - Notification delivery status
 
-- **Responsive Design**
-  - Works on desktop and mobile devices
-  - Bottom navigation on mobile for easy access
+## 🛠️ Technology Stack
 
-## Technology Stack
+- **Backend**
+  - Web API: PHP 8.1+, CodeIgniter 4
+  - Notification Server: Node.js, Express, Socket.IO
+  - Database: MySQL
 
-- **Backend**: PHP 8.1+, CodeIgniter 4
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Database**: MySQL/MariaDB
-- **Real-time Communication**: Socket.IO, WebSockets
-- **Authentication**: Session-based authentication
+- **Frontend**
+  - Web: HTML5, CSS3, JavaScript
+  - Mobile: Flutter, Dart
 
-## System Requirements
+- **Communication**
+  - RESTful APIs
+  - WebSockets
+  - Socket.IO
 
-- PHP version 8.1 or higher
-- Required PHP extensions:
-  - intl
-  - mbstring
-  - json (enabled by default)
-  - mysqlnd (if using MySQL)
-  - libcurl (if using HTTP\CURLRequest library)
+## 📋 System Requirements
+
+### Web Application
+- PHP 8.1 or higher
 - MySQL 5.7+ or MariaDB 10.3+
 - Web server (Apache/Nginx)
-- Node.js and npm (for the notification server)
+- Required PHP extensions: intl, mbstring, json, mysqlnd, libcurl
 
-## Installation
+### Mobile Application
+- Flutter SDK (3.7.2 or higher)
+- Dart SDK (3.0.0 or higher)
+- Android Studio / VS Code with Flutter plugins
+- iOS development tools (for iOS deployment)
 
-### 1. Clone the Repository
+### Notification Server
+- Node.js (v18 or higher)
+- npm or yarn
+- MySQL access
+
+### Docker Requirements
+- Docker Desktop installed and running
+- Basic understanding of Docker concepts
+- Access to host services (e.g., XAMPP MySQL)
+
+## 🚀 Installation
+
+You can run TaskTracker using either traditional installation or Docker containers.
+
+### Option 1: Traditional Installation
+
+#### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/task-tracker.git
+git clone https://github.com/your-username/tasktracker.git
+cd tasktracker
+```
+
+#### 2. Set Up Web Application
+
+```bash
 cd ci4_web_api
-```
-
-### 2. Install Dependencies
-
-```bash
 composer install
-npm install  # For notification server
-```
-
-### 3. Configure Environment
-
-Copy the environment template file and modify it for your setup:
-
-```bash
-cp env .env
-```
-
-Edit `.env` file to configure:
-- Base URL (`app.baseURL`)
-- Database settings (`database.*`)
-- Notification server URL (`NOTIFICATION_SERVER_URL`)
-
-### 4. Setup Database
-
-```bash
+cp .env.example .env
+# Configure .env with your database settings
 php spark migrate
-php spark db:seed InitialSeeder  # Create default admin user
+php spark db:seed InitialSeeder
 ```
 
-### 5. Start Notification Server
+#### 3. Set Up Notification Server
 
 ```bash
-cd notification-server
-npm start
+cd ../notification_server
+npm install
+cp .env.example .env
+# Configure .env with your settings
 ```
 
-### 6. Run the Application
+#### 4. Set Up Mobile Application
 
-For development:
 ```bash
+cd ../flutter_mobile_app
+flutter pub get
+# Create .env file with your API_BASE_URL and NOTIFICATION_SERVER_URL
+```
+
+#### 5. Start the Services
+
+```bash
+# Start web server (from ci4_web_api directory)
 php spark serve
+
+# Start notification server (from notification_server directory)
+npm start
+
+# Run mobile app (from flutter_mobile_app directory)
+flutter run
 ```
 
-For production, configure your web server to point to the `public` folder.
+### Option 2: Docker Installation
 
-## Project Structure
+Docker provides a consistent environment across different development setups and simplifies deployment.
 
-```
-ci4_web_api/
-├── app/                  # Application code
-│   ├── Config/           # Configuration files
-│   ├── Controllers/      # Controllers
-│   ├── Models/           # Data models
-│   └── Views/            # UI templates
-├── public/               # Publicly accessible files
-│   ├── assets/           # CSS, JS, images
-│   └── index.php         # Entry point
-├── notification-server/  # Real-time notification server
-└── vendor/               # Composer dependencies
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/tasktracker.git
+cd tasktracker
 ```
 
-## Key Components
+#### 2. Configure Environment Files
 
-### Models
+Set up environment files for Docker networking:
 
-- **UsersModel**: User account management
-- **TeamModel**: Team creation and management
-- **TasksModel**: Task tracking and assignment
-- **NotificationsModel**: User notifications
+**For Web Application (ci4_web_api/.env):**
+```env
+CI_ENVIRONMENT = development
+NOTIFICATION_SERVER_URL=http://host.docker.internal:3000
 
-### Controllers
+# Database Configuration for Docker
+database.default.hostname = host.docker.internal
+database.default.database = task_tracker_db
+database.default.username = root
+database.default.password = 
+database.default.DBDriver = MySQLi
+database.default.port = 3307
+```
 
-- **AuthController**: Authentication and session management
-- **UsersController**: User operations
-- **TeamController**: Team operations
-- **TasksController**: Task management
-- **NotificationsController**: Notification handling
-- **WebUIController**: Web interface views
+**For Notification Server (notification_server/.env):**
+```env
+PORT=3000
+NODE_ENV=development
 
-### Views
+# Database configuration for Docker
+DB_HOST=host.docker.internal
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=task_tracker_db
+DB_PORT=3307
 
-- Dashboard, Team, Task, User Management, and Notification pages
-- Modal components for creating/editing items
-- Error pages and form templates
+SOCKET_CORS_ORIGIN=*
+SOCKET_PATH=/socket.io
+NOTIFICATION_POLL_INTERVAL=5000
 
-## API Endpoints
+# CI4 backend connection
+API_BASE_URL=http://host.docker.internal:8080
+```
 
-The application includes a RESTful API for integration with other systems:
+#### 3. Build and Run Docker Containers
 
-### Users
-- `GET /users` - Get all users
-- `POST /users/add` - Create a new user
-- `PUT /users/{id}` - Update a user
-- `DELETE /users/{id}` - Delete a user
+**Build and Run Web Application:**
+```bash
+cd ci4_web_api
+docker build -t task-tracker-app .
+docker run -p 8080:80 --name task-tracker task-tracker-app
+```
 
-### Teams
-- `GET /teams` - Get all teams
-- `GET /teams/with-count` - Get teams with member counts
-- `GET /teams/{id}/members` - Get team members
-- `POST /teams` - Create a new team
-- `PUT /teams/{id}` - Update a team
+**Build and Run Notification Server:**
+```bash
+cd ../notification_server
+docker build -t notification-server .
+docker run -p 3000:3000 --name notification-server notification-server
+```
 
-### Tasks
-- `GET /tasks` - Get all tasks
-- `POST /tasks/add` - Create a new task
-- `PUT /tasks/edit/{id}` - Update a task
-- `PUT /tasks/status/{id}` - Update task status
-- `PUT /tasks/progress/{id}` - Update task progress
+#### 4. Set Up Mobile Application
 
-### Notifications
-- `GET /admin/notifications` - Get admin notifications
-- `POST /admin/notifications/mark-all-read` - Mark all notifications as read
+```bash
+cd ../flutter_mobile_app
+flutter pub get
+# Update .env with Docker URLs:
+# API_BASE_URL=http://localhost:8080
+# NOTIFICATION_SERVER_URL=http://localhost:3000
+flutter run
+```
 
-## Configuration
+#### 5. Access Your Applications
 
-### Environment Variables
+- **Web Application**: http://localhost:8080
+- **Notification Server**: http://localhost:3000
+- **Mobile Application**: Run on emulator/device via Flutter
 
-- `NOTIFICATION_SERVER_URL` - URL for the notification server (default: http://localhost:3000)
-- Database configuration (`database.*` variables)
-- Email configuration (for password resets, notifications)
+### Docker Networking Notes
 
-## Security Considerations
+- **host.docker.internal**: Used within containers to access host services (like XAMPP MySQL)
+- **Container Communication**: Containers can communicate with each other and host services
+- **Port Mapping**: Container ports are mapped to host ports for external access
+- **Environment Switching**: Easy switching between Docker and local development configurations
 
-- Authentication is enforced through filters
-- Form validation for all inputs
-- CSRF protection enabled
-- Session timeout handling
+## 📊 Database Schema
+
+The system uses a consistent database schema across components:
+
+```
+┌───────────┐       ┌───────────┐       ┌───────────┐
+│   users   │       │   teams   │       │   tasks   │
+├───────────┤       ├───────────┤       ├───────────┤
+│ id        │       │ id        │       │ id        │
+│ name      │       │ name      │       │ user_id   │
+│ email     │◄─────►│ description│◄─────►│ title     │
+│ password  │       └───────────┘       │ description│
+│ role      │                           │ due_date   │
+│ team_id   │       ┌───────────┐       │ status     │
+└───────────┘       │notifications│     │ priority   │
+                    ├───────────┤       │ progress   │
+                    │ id        │       └───────────┘
+                    │ user_id   │
+                    │ task_id   │
+                    │ title     │
+                    │ message   │
+                    │ is_read   │
+                    │ type      │
+                    └───────────┘
+```
+
+## 🐳 Docker Deployment Benefits
+
+Using Docker for TaskTracker provides several advantages:
+
+### Development Benefits
+- **Consistent Environment**: Same PHP version and extensions across all development setups
+- **Simplified Setup**: No need to install PHP, Apache, or Node.js locally
+- **Isolation**: Each component runs in its own container
+- **Easy Scaling**: Simple to add more instances of any component
+
+### Production Benefits
+- **Reproducible Builds**: Identical environments across development, staging, and production
+- **Container Orchestration**: Easy integration with Kubernetes, Docker Swarm
+- **Resource Management**: Better control over CPU and memory allocation
+- **Microservices Architecture**: Each component can be deployed and scaled independently
+
+### Integration Patterns
+- **Host Service Integration**: Seamless connection to existing services (XAMPP, local databases)
+- **Container-to-Container**: Direct communication between containerized services
+- **Mixed Environments**: Support for hybrid deployments (some services containerized, others not)
+
+## 🔒 Security Features
+
+- Authentication and authorization for all components
+- CSRF protection in web application
+- Secure WebSocket connections
+- Data validation across all inputs
 - XSS protection through output escaping
+- Docker security best practices (non-root users, minimal base images)
 
----
+## 🔧 Troubleshooting
 
-## Screenshots
+### Common Docker Issues
 
-[Add screenshots of key pages here]
+**Database Connection Issues:**
+- Ensure `host.docker.internal` is used for database hostname in Docker environments
+- Verify database service is running on the host
+- Check port mappings and firewall settings
+
+**Container Communication:**
+- Verify environment variables are correctly set
+- Check if containers are running: `docker ps`
+- View container logs: `docker logs [container-name]`
+
+**Build Issues:**
+- Clear Docker cache: `docker system prune`
+- Rebuild images: `docker build --no-cache -t [image-name] .`
+
+## 🔜 Future Development
+
+- Enhanced reporting and analytics
+- Calendar integrations
+- Time tracking features
+- Document attachments
+- Mobile offline mode
+- Multi-language support
+- Docker Compose configuration for easier multi-container deployment
+- Kubernetes deployment manifests
+- CI/CD pipeline integration
+
+## Component Documentation
+
+For detailed documentation on each component, please see:
+
+- [Web Application Documentation](ci4_web_api/README.md)
+- [Mobile Application Documentation](flutter_mobile_app/README.md)
+- [Notification Server Documentation](notification_server/README.md)
