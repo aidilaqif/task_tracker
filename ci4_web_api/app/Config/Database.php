@@ -26,7 +26,7 @@ class Database extends Config
      */
     public array $default = [
         'DSN'          => '',
-        'hostname'     => '127.0.0.1',
+        'hostname'     => 'host.docker.internal',
         'username'     => 'root',
         'password'     => '',
         'database'     => 'task_tracker_db',

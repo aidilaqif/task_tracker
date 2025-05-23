@@ -1,0 +1,59 @@
+FROM php:8.3-apache
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libicu-dev \
+    libzip-dev \
+    zip \
+    unzip
+
+# Clear cache
+RUN apt-get clean && rm -rf /var/cache/apt/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd intl zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy application files
+COPY . /var/www/html/
+
+# Copy environment file
+COPY .env /var/www/html/.env
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Create writable directory if not exists and set permissions
+RUN mkdir -p /var/www/html/writable/cache /var/www/html/writable/logs /var/www/html/writable/session /var/www/html/writable/uploads
+RUN chmod -R 777 /var/www/html/writable
+
+# Install dependencies
+RUN composer install --no-interaction --no-dev
+
+# Configure Apache
+RUN a2enmod rewrite
+
+# Fix Apache ServerName warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Update Apache document root to point to public directory
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+
+# Configure Apache for CodeIgniter (allow .htaccess overrides)
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Start Apache
+CMD ["apache2-foreground"]

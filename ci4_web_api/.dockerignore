@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Composer vendor directory
+/vendor
+
+# Runtime files
+/writable/cache/*
+/writable/logs/*
+/writable/session/*
+/writable/uploads/*
+/writable/debugbar/*
+
+# Tests
+/tests
+
+# Node modules
+/node_modules
+
+# IDE files
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Other
+*.swp
+*.swo
+.DS_Store
+*.md
+LICENSE
