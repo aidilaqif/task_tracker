@@ -1,0 +1,35 @@
+services:
+  # CI4 Web API
+  ci4-web-api:
+    build: 
+      context: ./ci4_web_api
+      dockerfile: dockerfile
+    container_name: tasktracker-web-api
+    environment:
+      # Override for container-to-container communication
+      - NOTIFICATION_SERVER_URL=http://nodejs-server:3000
+    ports:
+      - "8080:80"
+    networks:
+      - tasktracker-network
+    restart: unless-stopped
+    depends_on:
+      - nodejs-server
+
+  # Notification Server
+  nodejs-server:
+    build:
+      context: ./notification_server
+      dockerfile: dockerfile
+    container_name: tasktracker-notifications-server
+    environment:
+      - API_BASE_URL=http://ci4-web-api:8080
+    ports:
+      - "3000:3000"
+    networks:
+      - tasktracker-network
+    restart: unless-stopped
+
+networks:
+  tasktracker-network:
+    driver: bridge
